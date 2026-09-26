@@ -2,7 +2,7 @@
 
 **Ngày:** 29/09–05/10/2026
 **Mục tiêu:** Hoàn tất bảng chi phí cho mọi operator, tính oracle gain, và quyết định đi tiếp hay chuyển hướng.
-**Cổng:** **G1 — GO nếu oracle gain ≥ 1.25 ở t ≥ 32K với B ∈ {25, 50, 100} ms trên ≥ 2 model.** PIVOT nếu chỉ đạt ở t ≥ 128K (thu hẹp claim về long-context). KILL nếu < 1.15 ở mọi t ≤ 256K trên cả họ full-attention lẫn họ sparse → chuyển FP4 precision residency.
+**Cổng:** **G1 tách ba phần (cập nhật 24/09/2026), viết kết luận trước khi nhìn số.** **G1a** — Layered / Sarathi ≥ 1.20× trên model hybrid. **G1b** — HyPrefill / Layered ≥ 1.25× ở ít nhất một chế độ thực tế. **G1c** — kernel indexer thật có cấp phát buffer c·t theo mỗi lần gọi. Chi tiết và hành động khi trượt ở §3.
 
 ---
 
@@ -14,6 +14,9 @@
 - [ ] `bench/oracle.py` tính r_u, r_d, gain; heatmap gain theo (t, B)
 - [ ] Hình 2: c*(t) theo t cho từng operator
 - [ ] Hình 3: bản đồ regime gain theo (họ kiến trúc × context)
+- [ ] **(G1c, làm đầu tiên, ~nửa ngày)** Kiểm kernel indexer của Qwen3.8-Flash-Next: có cấp phát buffer logits c·t theo mỗi lần gọi, hay streaming top-k với workspace cố định?
+- [ ] **(+1–2 ngày)** Chạy `sim/hyprefill_sim.js` với số đo thật, tách gain của **pipeline theo chiều sâu** (Layered, k = 1) khỏi gain của **chunk theo operator** (HyPrefill, k ≥ 2)
+- [ ] Đo tập expert bị chạm bởi batch decode so với bởi chunk prefill (kiểm lo ngại MoE đã được decode chia sẻ)
 - [ ] **Một trang kết quả gửi advisor**
 
 ## 2. Việc chi tiết
@@ -67,12 +70,41 @@ r_d(t) = max c  s.t.  cost_FA(c,t) + Σ_{g≠FA} cost_g(k_g c)/k_g ≤ P   (kh�
 Gain(t) = r_d(t) / r_u(t)          quét k_g ∈ {1,2,4,8,16}
 ```
 
+
+### 2.5 Tách hai cơ chế — phép đo thêm (cập nhật 24/09/2026)
+
+Công thức oracle ở §2.4 chỉ có chunk theo operator, **không có pipeline theo chiều sâu**. Mô phỏng (`sim/hyprefill_sim.js`, bài giảng mục 9) gợi ý phần lớn gain ở chế độ thời gian đến từ pipeline, tức ý tưởng của Layered Prefill, còn chunk theo operator chỉ quan trọng khi attention bị giới hạn bởi bộ nhớ. Mô phỏng dùng hằng số minh hoạ nên **chỉ là giả thuyết**; tuần này đo để xác nhận hoặc bác.
+
+**Bước 1 — G1c, làm trước (~nửa ngày).** Đọc mã kernel indexer QSA trong vLLM (`vllm/.../qsa*` hoặc tương đương, liên quan issue #56457, PR #56500). Đo `torch.cuda.max_memory_allocated()` khi gọi một attention layer QSA với c ∈ {256, 512, 1K, 2K, 4K} và t ∈ {32K, 128K, 256K}. Nếu bộ nhớ đỉnh tăng tỉ lệ c·t → chế độ bộ nhớ có thật. Nếu phẳng (workspace cố định) → không có.
+
+**Bước 2 — thay hằng số minh hoạ bằng số đo.** Trong `sim/hyprefill_sim.js`, thay các hàm `FAl`, `Gl`, `Ml` và `cap` bằng bảng đo ở §2.1–2.3 (per-sublayer, không phải aggregate). Thay `LAYOUT` bằng bố cục thật từ `config.json`.
+
+**Bước 3 — chạy ba chính sách** cho mỗi model và mỗi chế độ, lấy ba tỉ số:
+```
+Layered / Sarathi        → G1a   (pipeline có đáng trên hybrid không)
+HyPrefill / Layered      → G1b   (đóng góp riêng của HyPrefill)
+HyPrefill / Sarathi      → chỉ để tham khảo, KHÔNG dùng làm headline
+```
+
+**Bước 4 — kiểm lo ngại MoE.** Với batch decode 32/64/128 trên Qwen3-Next, dump tập expert bị chạm bởi decode và bởi một chunk prefill c. Nếu decode đã chạm > 90% expert thì phần tiết kiệm đọc trọng số của HyPrefill trên node decode bận là nhỏ; ghi nhận và điều chỉnh claim.
+
 ## 3. Cổng G1 — viết kết luận trước khi nhìn số
 
-Tiêu chí ở đầu file. **Không sửa tiêu chí sau khi thấy kết quả.**
+**Không sửa tiêu chí sau khi thấy kết quả.**
 
-Câu hỏi độ bền bắt buộc trả lời: trên Qwen3.8-Flash-Next, gain còn bao nhiêu? Nếu < 1.10 ở mọi t ≤ 256K nhưng họ full-attention vẫn ≥ 1.25, claim thu hẹp về hybrid full-attention và paper nói thẳng sparse attention là giới hạn.
+| Cổng | Đo gì | Đạt | Trượt thì |
+|---|---|---|---|
+| **G1a** | Layered / Sarathi trên model hybrid | ≥ 1.20× | Cả hướng yếu → chuyển phương án lui số một (bài đo độ trung thực FP4) |
+| **G1b** | HyPrefill / Layered, ở ít nhất một chế độ thực tế | ≥ 1.25× | Nếu < 1.10× ở mọi chế độ: bài co lại thành "Layered Prefill cho hybrid" — nhỏ hơn nhiều; bàn với advisor có đi tiếp hay chuyển phương án lui |
+| **G1c** | Kernel indexer cấp phát buffer c·t theo mỗi lần gọi | Có | Chế độ bộ nhớ không có trong thực tế → G1b gần như chắc trượt; kiểm G1b ở chế độ thời gian trước khi quyết |
 
+Đọc kết hợp:
+
+- **G1a đạt, G1b đạt** → đi tiếp đúng kế hoạch; headline là HyPrefill / Layered, model sparse (Qwen3.8-Flash-Next, GLM-5.3-Flash) thành model headline nếu G1b đạt ở chế độ bộ nhớ.
+- **G1a đạt, G1b trượt** → đóng góp riêng của HyPrefill không đủ. Lựa chọn: viết "depth-pipelined prefill cho hybrid" (mở rộng Layered Prefill sang GDN, venue nhỏ hơn) hoặc chuyển phương án lui.
+- **G1a trượt** → chuyển phương án lui.
+
+Câu hỏi độ bền vẫn giữ: trên Qwen3.8-Flash-Next, gain còn bao nhiêu? Giờ trả lời riêng cho G1a và G1b.
 
 ---
 

@@ -66,7 +66,7 @@ mem_idx(c, t) ≈ c · t · H_idx · 4 byte                 ← buffer logits, p
 **Linear attention / GDN** — state kích thước cố định, thuật toán chunkwise kernel C = 64:
 ```
 cost_GDN(c) ≈ (c/C)·[γ·C²·d + δ·C·d²] + ε_launch
-cost/token  ≈ γ·C·d + δ·d²/C + ε_launch/c              → giảm theo c, KHÔNG phụ thuộc t
+cost/token  ≈ γ·C·d + δ·d² + ε_launch/c                → giảm theo c, KHÔNG phụ thuộc t
 ```
 
 **MoE** — thuế đọc trọng số expert mỗi chunk:
@@ -255,6 +255,8 @@ Chi tiết và số liệu trong `docs/02_RELATED_WORK.md`. Tóm tắt:
 
 Sarathi static (512 / 1024 / 2048), Layered Prefill (2510.08055), SLOWeave (2609.07883, cài lại trong cùng engine), HyPrefill-static (ablation bỏ phụ thuộc vị trí), COREY như cautionary baseline.
 
+**Layered Prefill là baseline chính** (cập nhật 24/09/2026): phải cài lại cho hybrid có GDN để so công bằng, và mọi con số headline là **HyPrefill / Layered**, không phải HyPrefill / Sarathi. So với Sarathi sẽ gán nhầm phần gain của pipeline theo chiều sâu cho HyPrefill.
+
 ### 4.4 Metric
 
 TTFT P50/P99, TBT P99, E2E, **goodput** (request/s đạt SLO), J/token. SLO: P99 TBT ≤ 25 / 50 / 100 ms.
@@ -276,12 +278,17 @@ TTFT P50/P99, TBT P99, E2E, **goodput** (request/s đạt SLO), J/token. SLO: P9
 
 | Cổng | Ngày | Tiêu chí | Nếu trượt |
 |---|---|---|---|
-| **G1** | 05/10 | Oracle gain ≥ 1.25 ở t ≥ 32K, B ∈ {25, 50, 100} ms, trên ≥ 2 model | Chuyển FP4 precision residency (`docs/04_...`) |
+| **G1a** | 05/10 | Layered / Sarathi ≥ 1.20× trên model hybrid (pipeline theo chiều sâu có đáng không) | Chuyển phương án lui số một |
+| **G1b** | 05/10 | HyPrefill / Layered ≥ 1.25× ở ít nhất một chế độ (đóng góp riêng của HyPrefill) | < 1.10× mọi chế độ → bài co thành "Layered Prefill cho hybrid" hoặc chuyển phương án lui |
+| **G1c** | 05/10 | Kernel indexer thật cấp phát buffer c·t theo mỗi lần gọi (chế độ bộ nhớ có thật) | Chế độ bộ nhớ không tồn tại → G1b gần như chắc trượt |
 | **G2** | 19/10 | HyPrefill-oracle > SLOWeave ≥ 10% trên long-context (simulator) | Thu hẹp claim về long-context-only |
 | **G3** | 09/11 | Overhead buffer + stagger ≤ 50% oracle gain | Paper measurement + oracle, nộp SIGMETRICS 11/01 |
 | **HARD** | 16/11 | Có số end-to-end trên fork | **Dừng port vLLM**, viết bài oracle + simulator |
 | **G4** | 30/11 | Prototype khớp simulator ±15% | Báo cáo sai lệch như một finding |
 | **G5** | 21/12 | Đủ hình cho paper | Chọn venue cuối |
+
+
+**Vì sao tách G1 (cập nhật 24/09/2026).** Cost model ở §2.2 chỉ mô hình hoá chunk theo operator, không có **pipeline theo chiều sâu** — tức cho một batch trải qua nhiều iteration trên đường đi xuống các layer, ý tưởng cốt lõi của Layered Prefill. Một mô phỏng dòng token (`sim/hyprefill_sim.js`, hằng số minh hoạ, chỉ là giả thuyết) gợi ý: khi attention bị giới hạn bởi **thời gian**, pipeline mang phần lớn gain và chunk theo operator chỉ thêm 0–10%; khi attention bị giới hạn bởi **bộ nhớ** (buffer indexer theo mỗi lần gọi), pipeline không gỡ được và chunk theo operator trở thành cơ chế chính. Lý do: budget TBT là ràng buộc mỗi iteration, còn buffer indexer là ràng buộc mỗi lần gọi. G1 cũ đo gộp hai cơ chế nên có thể đạt trong khi đóng góp riêng của HyPrefill bằng không. Claim trung tâm và abstract sẽ viết lại **sau** khi có số đo G1, không phải bây giờ. Giải thích đầy đủ: bài giảng `docs/00_FOUNDATIONS.html` mục 9.
 
 **Câu hỏi độ bền bắt buộc trả lời ở G1:** trên Qwen3.8-Flash-Next (sparse attention), gain còn bao nhiêu? Nếu < 1.10 ở mọi t ≤ 256K thì claim thu hẹp về họ full-attention hybrid và nộp sớm.
 
@@ -297,6 +304,7 @@ TTFT P50/P99, TBT P99, E2E, **goodput** (request/s đạt SLO), J/token. SLO: P9
 | **Engineering trong vLLM nặng hơn dự kiến** | **Cao** | Prototype trên fork nanovllm trước; cổng cứng tuần 8 |
 | Engine hybrid còn bug (SGLang #39342, vLLM #54076) | Trung bình | Tắt prefix cache trong eval chính; dùng Qwen3-Next làm anchor |
 | Sparse attention làm yếu cơ chế 1/t | Trung bình | Khung ba loại ràng buộc; bản đồ regime; nói thẳng giới hạn |
+| **Xu hướng chuyển chi phí prefill vào kiến trúc** (sparse attention; CED của DeepSeek V4.1; YOCO của HySparse2, arXiv 2609.26368). Ở kiến trúc thoát prefill sớm, sparse attention bị bỏ qua khi prefill nên chế độ indexer bị giới hạn bộ nhớ không xảy ra | Trung bình, về dài hạn | Giới hạn phạm vi rõ ràng vào hybrid kiểu stack thường (Qwen3.8-Flash-Next, GLM-5.3-Flash — sparse attention chạy trong prefill); nêu YOCO/CED trong Limitations; G1c kiểm chế độ bộ nhớ trên model thật. HySparse2 chưa công bố weights nên chưa phải model đánh giá |
 
 **Loại rủi ro cần nhớ:** rủi ro độ mới chết lúc nộp, rủi ro kỹ thuật chết trước cả lúc nộp. Với 19 tuần, sáu tuần engineering là phần đáng lo nhất.
 

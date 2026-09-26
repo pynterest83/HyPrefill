@@ -140,6 +140,20 @@ Chia sẻ Top-K / KV qua layer, **static**. Nền cho CSA2 của DeepSeek V4.1.
 
 ---
 
+### HySparse2 — arXiv 2609.26368 (22/09/2026), Xiaomi LLM-Core
+Kiến trúc model, không phải paper lập lịch. **Không scoop HyPrefill.** Không có weights hay code công bố.
+
+- Model 80B-A3B MoE, 49 layer, hidden 2048, MQA (64 query head / 1 KV head), head dim 256.
+- Chia kiểu YOCO: **self-decoder** (~25 layer) dùng sliding-window attention cửa sổ 128 token cộng 5 layer full attention; **cross-decoder** dùng full attention cộng sparse attention (1024 token chọn ở mức token). KV của cross-decoder dựng từ hidden state của self-decoder ("KV Bridging").
+- **"Prefill can therefore exit after the self-decoder, skipping all cross-decoder layers."** Trong PD disaggregation, node prefill chỉ cần ~25 layer đầu, gần nửa bộ nhớ.
+- Ở 1M token: FLOP prefill giảm **2.92×** so với HySparse và **5.02×** so với Hybrid SWA. KV cache 2.69 GB so với 6.72 GB (HySparse) và 12.09 GB (Hybrid SWA), FP8.
+- Không có gì về chunked prefill, lập lịch, TTFT/TBT hay engine.
+
+**Dùng trong paper HyPrefill:**
+1. *Intro / Motivation* — trích nguyên văn: "Across interaction rounds, a short generated action or tool call can return a much longer search result, execution trace, or document that requires prefill before decoding resumes." Một lab lớn thiết kế cả kiến trúc quanh đúng workload append-prefill.
+2. *Limitations* — HyPrefill áp dụng cho hybrid kiểu stack thường. Ở kiến trúc thoát prefill sớm (YOCO như HySparse2, CED như DeepSeek V4.1), sparse attention nằm ở phần bị bỏ qua khi prefill, nên **chế độ indexer bị giới hạn bộ nhớ — nơi chunk theo operator có giá trị nhất — không xảy ra trong prefill**.
+3. *Bối cảnh xu hướng* — lần thứ ba quan sát các lab giải chi phí prefill bằng kiến trúc thay vì lập lịch: sparse attention (DSA/QSA), CED (DeepSeek V4.1), YOCO (HySparse2).
+
 ## 5. Trạng thái engine (kiểm tra 14–18/09/2026)
 
 | Bằng chứng | Link |

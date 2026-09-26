@@ -37,7 +37,9 @@ Chunked prefill hiện nay dùng một chunk size cho toàn bộ model. Với mo
 
 | Cổng | Tuần | Ngày | Tiêu chí |
 |---|---|---|---|
-| G1 | 2 | 05/10 | Oracle gain ≥ 1.25 ở t ≥ 32K trên ≥ 2 model |
+| G1a | 2 | 05/10 | Layered / Sarathi ≥ 1.20× trên hybrid |
+| G1b | 2 | 05/10 | HyPrefill / Layered ≥ 1.25× ở ít nhất một chế độ |
+| G1c | 2 | 05/10 | Kernel indexer cấp phát buffer c·t theo mỗi lần gọi |
 | G2 | 4 | 19/10 | Thắng SLOWeave ≥ 10% trên long-context (simulator) |
 | G3 | 7 | 09/11 | Overhead buffer ≤ 50% oracle gain |
 | **CỨNG** | 8 | 16/11 | **Có số end-to-end, nếu không thì dừng port vLLM** |
@@ -63,7 +65,7 @@ HyPrefill/
 │   └── lecture_notes/             ghi chú đầy đủ 9 paper
 ├── weeks/WEEK_00.md … WEEK_16.md  kế hoạch từng tuần, phần KẾT QUẢ để trống
 ├── bench/                         micro-benchmark cost model
-├── sim/                           simulator sự kiện rời rạc
+├── sim/hyprefill_sim.js          mô phỏng dòng token (bản khởi đầu, hằng số minh hoạ)
 ├── results/                       CSV thô, không bao giờ ghi đè
 └── figures/                       hình cho paper
 ```

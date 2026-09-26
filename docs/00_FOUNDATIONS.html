@@ -37,15 +37,22 @@ code,pre{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospac
 code{background:var(--code);padding:.1em .35em;border-radius:4px;font-size:.88em}
 pre{background:var(--code);border:1px solid var(--line);border-radius:6px;padding:.9rem 1rem;overflow-x:auto;font-size:.86em;line-height:1.5}
 .formula{font-family:"JetBrains Mono",monospace;background:var(--soft);border-left:3px solid var(--accent);padding:.7rem 1rem;margin:1rem 0;overflow-x:auto;font-size:.95em}
+.eq{background:var(--soft);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;padding:.8rem 1.1rem;margin:1.1rem 0}
+.eq .m{overflow-x:auto;overflow-y:hidden;max-width:100%;padding-block:.15rem;font-size:1.05em}
+.eq .n{color:var(--muted);font-size:.88em;line-height:1.45;margin:.05rem 0 .75rem}
+.eq .n:last-child{margin-bottom:0}
+.eq .t{font-size:.95em;line-height:1.55;margin:.35rem 0 .6rem}
+.eq .t:last-child{margin-bottom:0}
 .why{background:var(--note);color:var(--note-ink);border-radius:6px;padding:.8rem 1rem;margin:1.1rem 0}
-.why b{display:block;font-size:12px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.25rem}
+.why>b:first-child{display:block;font-size:12px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.25rem}
 table{border-collapse:collapse;width:100%;font-size:.93em;margin:1rem 0;font-variant-numeric:tabular-nums}
 .tbl{overflow-x:auto}
 th,td{text-align:left;padding:.5rem .6rem;border-bottom:1px solid var(--line);vertical-align:top}
 th{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 figure{margin:1.4rem 0}
 figcaption{font-size:.9em;color:var(--muted);margin-top:.5rem}
-svg{max-width:100%;height:auto;display:block}
+figure svg{max-width:100%;height:auto;display:block}
+mjx-container{max-width:100%}
 .op{display:inline-block;width:.75em;height:.75em;border-radius:2px;vertical-align:-1px;margin-right:.3em}
 .fa{color:var(--fa)}.gdn{color:var(--gdn)}.moe{color:var(--moe)}
 .calc{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:1.2rem;margin:1.4rem 0}
@@ -66,6 +73,15 @@ summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 ol,ul{padding-left:1.3rem}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
 </style>
+<script>
+window.MathJax = {
+  tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] },
+  svg: { fontCache: 'global' },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js"></script>
+
 
 <div class="wrap">
 <nav class="rail" aria-label="Mục lục">
@@ -90,12 +106,20 @@ ol,ul{padding-left:1.3rem}
   <a href="#p7">8.7 GLA chunkwise</a>
   <a href="#p8">8.8 Marconi</a>
   <a href="#p9">8.9 DeepSeek DSA</a>
+  <div class="k">Giải pháp</div>
+  <a href="#s9">9. Đọc proposal</a>
+  <a href="#q2">9.2 Hai cơ chế</a>
+  <a href="#q5">9.5 Kết quả mô phỏng</a>
+  <a href="#q6">9.6 Proposal đổi gì</a>
+  <a href="#q8">9.8 Tính đúng đắn</a>
+  <a href="#q11">9.11 Cổng G1 mới</a>
+  <a href="#q12">9.12 Rủi ro</a>
 </nav>
 
 <main>
 <div class="eyebrow">Phần 0 · Nền tảng kỹ thuật</div>
 <h1>Nền tảng HyPrefill</h1>
-<p class="lede">Bốn khái niệm, một luận điểm và bảy bài đọc. Mục tiêu của trang này là sau khi đọc xong, bạn tự viết lại được cost model của paper và biết vì sao chunk đồng nhất là điểm yếu của model hybrid.</p>
+<p class="lede">Bốn khái niệm, một luận điểm, chín bài đọc đã giảng, và phần giải thích proposal. Sau khi đọc xong, bạn tự viết lại được cost model, biết vì sao chunk đồng nhất là điểm yếu của model hybrid, và biết phần nào của gain thuộc về HyPrefill, phần nào thuộc về Layered Prefill (mục 9).</p>
 
 <h2 id="s1">1. Prefill và decode là hai bài toán khác nhau trên cùng một model</h2>
 <p>Một request sinh văn bản có hai pha. <b>Prefill</b> đọc toàn bộ prompt (L token) trong một lần forward, tính KV cache cho mọi layer attention, và sinh token đầu tiên. <b>Decode</b> sinh từng token còn lại, mỗi bước là một forward với đúng một token mới, đọc lại KV cache của toàn bộ context.</p>
@@ -120,9 +144,11 @@ ol,ul{padding-left:1.3rem}
 
 <h3>Vì sao prefill bị giới hạn bởi compute, decode bị giới hạn bởi băng thông</h3>
 <p>Hãy nhìn qua <b>cường độ số học</b> (arithmetic intensity): số phép tính trên mỗi byte đọc từ HBM. Với một ma trận trọng số W kích thước d×d, nhân với X gồm n token tốn 2·n·d² FLOP nhưng chỉ đọc W một lần (2·d² byte ở bf16). Cường độ ≈ n FLOP/byte.</p>
-<div class="formula">H200: ~990 TFLOP/s bf16, ~4.8 TB/s HBM  →  điểm gãy ≈ 200 FLOP/byte<br>
-Prefill 8K token: cường độ ≈ 8000  → compute-bound<br>
-Decode batch 16: cường độ ≈ 16     → memory-bound (GPU đọc trọng số, hầu như không tính)</div>
+<div class="eq">
+  <div class="m">\(\displaystyle \frac{990\ \text{TFLOP/s}}{4.8\ \text{TB/s}} \approx 200\ \text{FLOP/byte}\)</div><div class="n">H200 ở bf16: điểm gãy giữa memory-bound và compute-bound</div>
+  <div class="m">\(\displaystyle I_{\text{prefill, 8K token}} \approx 8000\)</div><div class="n">vượt xa điểm gãy, nên <b>compute-bound</b></div>
+  <div class="m">\(\displaystyle I_{\text{decode, batch 16}} \approx 16\)</div><div class="n">dưới điểm gãy, nên <b>memory-bound</b>: GPU chủ yếu đọc trọng số, hầu như không tính</div>
+</div>
 <p>Hệ quả thực tế: khi decode chạy một mình, GPU rảnh rất nhiều. Đó là lý do người ta muốn nhét prefill vào cùng iteration với decode. Nhưng nhét cả một prompt 100K token vào thì các request đang decode phải chờ hàng trăm mili giây, gọi là <b>generation stall</b>.</p>
 <div class="why"><b>Vì sao quan trọng với paper</b>Toàn bộ trò chơi là chia sẻ GPU giữa prefill (nặng, compute) và decode (nhẹ, băng thông) mà không làm decode giật. Chunked prefill là công cụ cho việc đó, và chunk size là núm vặn duy nhất.</div>
 
@@ -130,9 +156,9 @@ Decode batch 16: cường độ ≈ 16     → memory-bound (GPU đọc trọng 
 <p>Sarathi-Serve (OSDI 2024) cắt prompt thành các <b>chunk</b> c token. Mỗi iteration của scheduler chạy một forward gồm: toàn bộ batch decode hiện có, cộng thêm một chunk prefill. Decode được xếp vào mọi iteration nên không request nào bị stall. Đây là <b>stall-free batching</b>.</p>
 <h3>Ai ưu tiên ai: lịch sử ngắn</h3>
 <p>vLLM đời đầu (V0) <b>ưu tiên prefill</b>: có request mới là chạy prefill trước, các request đang decode phải chờ, gây generation stall. Khi bật chunked prefill, vLLM đảo sang <b>ưu tiên decode</b>. vLLM V1 (mặc định từ 2025) bật chunked prefill sẵn, không phân biệt hai pha mà chỉ có một token budget mỗi iteration, duyệt hàng <code>running</code> trước rồi mới lấp phần còn lại bằng <code>waiting</code>, nên thực tế vẫn là decode trước. SGLang mặc định vẫn prefill-first, chunked prefill chỉ giới hạn độ dài stall, và <code>--enable-mixed-chunk</code> mới cho hai pha vào cùng batch.</p>
-<p>Chunked prefill giảm stall nhưng không xoá <b>interference</b>: mỗi iteration vẫn dài thêm đúng bằng T_chunk, và chunk nhỏ làm prefill kém hiệu quả. Đó là lý do DistServe và Splitwise đề xuất <b>prefill/decode disaggregation</b>, tách hai pha ra hai pool GPU và chuyển KV cache qua mạng.</p>
+<p>Chunked prefill giảm stall nhưng không xoá <b>interference</b>: mỗi iteration vẫn dài thêm đúng bằng \(T_{\text{chunk}}\), và chunk nhỏ làm prefill kém hiệu quả. Đó là lý do DistServe và Splitwise đề xuất <b>prefill/decode disaggregation</b>, tách hai pha ra hai pool GPU và chuyển KV cache qua mạng.</p>
 <p>Với workload agent, interference còn nặng hơn: context dài, nhiều lượt, và khi VRAM không giữ nổi prefix cache của các phiên thì lượt sau phải prefill lại cả context, decode của mọi request khác "nhỏ giọt". Vì thế các nhà cung cấp lớn chạy PD cộng KV store (Mooncake của Kimi, NVIDIA Dynamo, roadmap KV phân tán của SGLang). Nhưng PD thuần cũng không sạch: mỗi lượt agent là một <b>append-prefill</b> ngắn trên prefix rất dài đã có KV; chuyển KV đi rồi về đắt hơn phần prefill nhỏ, nên "Not All Prefills Are Equal" (arXiv 2603.13358) đề xuất chạy append-prefill ngay trên node decode, cùng batch với decode.</p>
-<div class="why"><b>Phạm vi của HyPrefill</b>Luận điểm "min over operators" có ý nghĩa ở <b>mọi GPU đang chạy đồng thời prefill và decode dưới ràng buộc TBT</b>: (1) triển khai colocated mặc định của vLLM và SGLang, điển hình cho cụm 1–8 GPU; (2) node decode của hệ PD/PPD khi chạy append-prefill nhiều lượt, nơi token mới ít nhưng t rất lớn nên chunk attention bị ép cực nhỏ trong khi GDN và MoE muốn xử lý cả vài nghìn token mới một lần; (3) node prefill thuần <i>không</i> có ràng buộc TBT, HyPrefill không có gain và paper phải nói thẳng. Bài "Prefill-Decode Aggregation or Disaggregation?" (arXiv 2508.01989) cho thấy mỗi chế độ thắng ở một vùng tải, dùng để biện minh trường hợp (1).</div>
+<div class="why"><b>Phạm vi của HyPrefill</b>Luận điểm "min over operators" có ý nghĩa ở <b>mọi GPU đang chạy đồng thời prefill và decode dưới ràng buộc TBT</b>: (1) node decode của hệ PD/PPD khi chạy append-prefill nhiều lượt, nơi token mới ít nhưng t rất lớn — phạm vi chính vì đúng cả khi toàn ngành disaggregate; (2) triển khai colocated mặc định của vLLM và SGLang, điển hình cho cụm 1–8 GPU; (3) node prefill thuần <i>không</i> có ràng buộc TBT, HyPrefill không có gain và paper phải nói thẳng. Bài "Prefill-Decode Aggregation or Disaggregation?" (arXiv 2508.01989) cho thấy mỗi chế độ thắng ở một vùng tải, dùng để biện minh trường hợp (1).</div>
 
 <figure>
 <svg viewBox="0 0 640 210" role="img" aria-label="Các iteration của chunked prefill">
@@ -153,17 +179,19 @@ Decode batch 16: cường độ ≈ 16     → memory-bound (GPU đọc trọng 
   </g>
   <line x1="410" y1="10" x2="410" y2="165" stroke="currentColor" stroke-dasharray="4 3"/>
   <text x="418" y="30" font-size="12" fill="currentColor">budget B (TBT SLO)</text>
-  <text x="418" y="50" font-size="12" fill="currentColor">T_iter = D + T_chunk(c) ≤ B</text>
-  <text x="418" y="90" font-size="12" fill="currentColor">TTFT ≈ (L / c) · T_iter</text>
+  <text x="418" y="50" font-size="12" fill="currentColor">T<tspan baseline-shift="sub" font-size="9">iter</tspan> = D + T<tspan baseline-shift="sub" font-size="9">chunk</tspan>(c) ≤ B</text>
+  <text x="418" y="90" font-size="12" fill="currentColor">TTFT ≈ (L / c) · T<tspan baseline-shift="sub" font-size="9">iter</tspan></text>
 </svg>
 <figcaption>Mỗi iteration gồm decode của mọi request đang chạy (D mili giây) cộng một chunk prefill. TBT của các request decode bằng thời gian iteration, nên chunk phải vừa với budget B.</figcaption>
 </figure>
 
 <h3>Phép đánh đổi</h3>
-<div class="formula">T_iter(c) = D + T_chunk(c)        (D: thời gian decode batch, gần như không đổi theo c)<br>
-TBT  ≈ T_iter(c)                 (mọi request decode chờ đủ một iteration)<br>
-TTFT ≈ (L / c) · T_iter(c)       (cần L/c iteration để prefill xong)</div>
-<p>Chunk lớn: ít iteration, TTFT thấp, nhưng T_iter dài, TBT tăng. Chunk nhỏ: TBT đẹp nhưng TTFT tăng, và mỗi chunk mang một phần overhead cố định (launch kernel, đọc trọng số) nên tổng thời gian prefill cũng tăng. Vì vậy với SLO "P99 TBT ≤ B", người vận hành chọn chunk lớn nhất sao cho T_iter ≤ B.</p>
+<div class="eq">
+  <div class="m">\(\displaystyle T_{\text{iter}}(c) = D + T_{\text{chunk}}(c)\)</div><div class="n">\(D\) là thời gian decode batch, gần như không đổi theo \(c\)</div>
+  <div class="m">\(\displaystyle \text{TBT} \approx T_{\text{iter}}(c)\)</div><div class="n">mọi request đang decode chờ đủ một iteration</div>
+  <div class="m">\(\displaystyle \text{TTFT} \approx \frac{L}{c}\, T_{\text{iter}}(c)\)</div><div class="n">cần \(L/c\) iteration để prefill xong</div>
+</div>
+<p>Chunk lớn: ít iteration, TTFT thấp, nhưng \(T_{\text{iter}}\) dài, TBT tăng. Chunk nhỏ: TBT đẹp nhưng TTFT tăng, và mỗi chunk mang một phần overhead cố định (launch kernel, đọc trọng số) nên tổng thời gian prefill cũng tăng. Vì vậy với SLO "P99 TBT ≤ B", người vận hành chọn chunk lớn nhất sao cho \(T_{\text{iter}}\) ≤ B.</p>
 <p>Điểm cần nhớ nhất: trong vLLM, SGLang và TensorRT-LLM, chunk size là <b>một số cho toàn bộ model</b> (vLLM: <code>max_num_batched_tokens</code>; SGLang: <code>chunked_prefill_size</code>). Mọi layer, bất kể loại operator, xử lý cùng c token mỗi iteration.</p>
 <div class="why"><b>Vì sao quan trọng với paper</b>Nếu các loại layer có "hình dạng chi phí" khác nhau, một chunk chung sẽ tối ưu cho đúng một loại và sai cho các loại còn lại. Mục 3 chỉ ra chúng khác nhau thật.</div>
 
@@ -171,36 +199,46 @@ TTFT ≈ (L / c) · T_iter(c)       (cần L/c iteration để prefill xong)</di
 <p>Model hybrid năm 2026 (Qwen3-Next, Kimi Linear, Nemotron 3, GLM-5.3-Flash) xen kẽ ba loại operator. Hãy viết chi phí xử lý một chunk c token khi đã có t token context cho từng loại.</p>
 
 <h3><span class="op" style="background:var(--fa)"></span>Full attention: chi phí tăng theo context</h3>
-<p>Mỗi token mới trong chunk phải tính điểm attention với toàn bộ t token trước đó cộng với các token cùng chunk (causal). Với H head, head_dim d_h, một layer tốn xấp xỉ 4·c·(t + c/2)·H·d_h FLOP cho QKᵀ và PV.</p>
-<div class="formula">cost_FA(c, t) ≈ α · c · (t + c/2) + β · c        (α: FLOP attention, β: projection Q/K/V/O tuyến tính)<br>
-chi phí mỗi token ≈ α · (t + c/2) + β          → gần như <b>không phụ thuộc c</b>, nhưng <b>tăng tuyến tính theo t</b></div>
-<p>KV cache cũng lớn dần: mỗi token thêm 2·layers·H_kv·d_h·2 byte. Ở 128K token, một model như Qwen3-Next (2 KV head, d_h 256, 12 attention layer) giữ khoảng 3 GB KV cho một request. Phần này không phải điểm chính của paper nhưng giải thích vì sao model hybrid ít attention layer.</p>
+<p>Mỗi token mới trong chunk phải tính điểm attention với toàn bộ t token trước đó cộng với các token cùng chunk (causal). Với H head, head_dim \(d_h\), một layer tốn xấp xỉ 4·c·(t + c/2)·H·\(d_h\) FLOP cho QKᵀ và PV.</p>
+<div class="eq">
+  <div class="m">\(\displaystyle \mathrm{cost}_{\mathrm{FA}}(c,t) \approx \alpha\, c\,\Big(t + \frac{c}{2}\Big) + \beta\, c\)</div><div class="n">\(\alpha\): FLOP attention; \(\beta\): projection Q/K/V/O, tuyến tính theo \(c\)</div>
+  <div class="m">\(\displaystyle \frac{\mathrm{cost}_{\mathrm{FA}}}{c} \approx \alpha\,\Big(t + \frac{c}{2}\Big) + \beta\)</div><div class="n">chi phí mỗi token: gần như <b>không phụ thuộc \(c\)</b>, nhưng <b>tăng tuyến tính theo \(t\)</b></div>
+</div>
+<p>KV cache cũng lớn dần: mỗi token thêm 2·layers·\(H_{\text{kv}}\)·\(d_h\)·2 byte. Ở 128K token, một model như Qwen3-Next (2 KV head, \(d_h\) 256, 12 attention layer) giữ khoảng 3 GB KV cho một request. Phần này không phải điểm chính của paper nhưng giải thích vì sao model hybrid ít attention layer.</p>
 
 <h3><span class="op" style="background:var(--gdn)"></span>Linear attention / Gated DeltaNet: state cố định, chi phí không phụ thuộc t</h3>
-<p>Linear attention thay softmax bằng một <b>state</b> S kích thước d_k × d_v mỗi head, cập nhật đệ quy. Gated DeltaNet (GDN, dùng trong Qwen3-Next) có dạng:</p>
-<div class="formula">S_t = S_{t-1} · (α_t · I − β_t · k_t k_tᵀ) + β_t · k_t v_tᵀ<br>
-o_t = S_t ᵀ q_t</div>
-<p>α_t là cổng quên (gate), β_t là bước học delta-rule. Điều quan trọng: S_t có kích thước cố định, không phụ thuộc t. Toàn bộ lịch sử đã được nén vào S. Khi prefill, thư viện Flash Linear Attention không chạy đệ quy từng token mà dùng <b>thuật toán chunkwise</b> với chunk kernel C = 64 token: trong mỗi chunk 64 token tính bằng matmul (song song), rồi truyền state qua chunk kế tiếp.</p>
-<div class="formula">cost_GDN(c) ≈ (c / C) · [ γ · C² · d  +  δ · d² ]  +  ε_launch<br>
-                 intra-chunk (matmul)   inter-chunk (state)   overhead cố định mỗi lần gọi<br>
-chi phí mỗi token ≈ γ·C·d + δ·d²/C + ε_launch / c   → <b>giảm khi c tăng</b>, <b>không phụ thuộc t</b></div>
-<p>Hai nhận xét. Thứ nhất, chunk kernel C = 64 là hằng số toán học của kernel (vLLM đặt <code>FLA_CHUNK_SIZE=64</code>, và RFC #55524 yêu cầu giữ cố định giữa prefill và decode để bit-identical). HyPrefill <b>không</b> đổi C; nó đổi c, tức số token mà scheduler đưa vào một lần gọi. Thứ hai, số hạng ε_launch / c là lý do GDN thích c lớn: gọi kernel với 128 token thì overhead chiếm tỉ trọng lớn hơn gọi với 2048 token.</p>
+<p>Linear attention thay softmax bằng một <b>state</b> S kích thước \(d_k\) × \(d_v\) mỗi head, cập nhật đệ quy. Gated DeltaNet (GDN, dùng trong Qwen3-Next) có dạng:</p>
+<div class="eq">
+  <div class="m">\(\displaystyle S_t = S_{t-1}\,\alpha_t\big(I - \beta_t\, k_t k_t^{\top}\big) + \beta_t\, k_t v_t^{\top}\)</div><div class="n">cập nhật state: \(\alpha_t\) quên toàn cục, \(\beta_t\) ghi đè có chọn lọc theo key</div>
+  <div class="m">\(\displaystyle o_t = S_t^{\top} q_t\)</div><div class="n">output của token \(t\)</div>
+</div>
+<p>\(\alpha_t\) là cổng quên (gate), \(\beta_t\) là bước học delta-rule. Điều quan trọng: \(S_t\) có kích thước cố định, không phụ thuộc t. Toàn bộ lịch sử đã được nén vào S. Khi prefill, thư viện Flash Linear Attention không chạy đệ quy từng token mà dùng <b>thuật toán chunkwise</b> với chunk kernel C = 64 token: trong mỗi chunk 64 token tính bằng matmul (song song), rồi truyền state qua chunk kế tiếp.</p>
+<div class="eq">
+  <div class="m">\(\displaystyle \mathrm{cost}_{\mathrm{GDN}}(c) \approx \frac{c}{C}\Big[\underbrace{\gamma\, C^{2} d}_{\text{intra-chunk}} + \underbrace{\delta\, C\, d^{2}}_{\text{inter-chunk}}\Big] + \varepsilon_{\text{launch}}\)</div><div class="n">\(C = 64\) là chunk của kernel; \(\varepsilon_{\text{launch}}\) là overhead cố định mỗi lần gọi</div>
+  <div class="m">\(\displaystyle \frac{\mathrm{cost}_{\mathrm{GDN}}}{c} \approx \gamma\, C\, d + \delta\, d^{2} + \frac{\varepsilon_{\text{launch}}}{c}\)</div><div class="n">chi phí mỗi token: <b>giảm khi \(c\) tăng</b>, <b>không phụ thuộc \(t\)</b></div>
+</div>
+<p>Hai nhận xét. Thứ nhất, chunk kernel C = 64 là hằng số toán học của kernel (vLLM đặt <code>FLA_CHUNK_SIZE=64</code>, và RFC #55524 yêu cầu giữ cố định giữa prefill và decode để bit-identical). HyPrefill <b>không</b> đổi C; nó đổi c, tức số token mà scheduler đưa vào một lần gọi. Thứ hai, số hạng \(\varepsilon_{\text{launch}}\) / c là lý do GDN thích c lớn: gọi kernel với 128 token thì overhead chiếm tỉ trọng lớn hơn gọi với 2048 token.</p>
 <p>Mamba2 (Nemotron-H) có cấu trúc tương tự với thuật toán SSD; kết luận về hình dạng chi phí giữ nguyên.</p>
 
 <h3><span class="op" style="background:var(--moe)"></span>MoE: thuế đọc trọng số cố định mỗi chunk</h3>
 <p>Một layer MoE có E expert (Qwen3-Next: 512), mỗi token được router chọn k expert (10 routed + 1 shared). Trọng số expert được đọc từ HBM mỗi khi expert đó có ít nhất một token. Với c token trong chunk, số expert bị chạm xấp xỉ:</p>
-<div class="formula">E_touched(c) ≈ E · [1 − (1 − k/E)^c]<br>
-Qwen3-Next: c = 64 → ~360/512 expert; c = 256 → ~505/512; c ≥ 512 → gần như tất cả</div>
+<div class="eq">
+  <div class="m">\(\displaystyle E_{\text{touched}}(c) \approx E\Big[1 - \Big(1 - \frac{k}{E}\Big)^{c}\Big]\)</div><div class="n">số expert bị chạm bởi \(c\) token, mỗi token chọn \(k\) trong \(E\) expert</div>
+  <div class="t">Qwen3-Next (\(E = 512,\ k = 10\)): \(c = 64\) chạm khoảng 367 expert; \(c = 256\) khoảng 509; từ \(c = 512\) trở lên gần như tất cả.</div>
+</div>
 <p>Nghĩa là từ vài trăm token trở lên, <b>mỗi chunk đọc gần như toàn bộ trọng số expert</b> của layer, bất kể chunk 512 hay 8192. Ở chunk nhỏ, layer MoE là memory-bound: thời gian ≈ thời gian đọc trọng số, gần như không đổi theo c. Đó là "thuế" cố định. Layered Prefill đo được chunk 512 gây thêm 39% traffic đọc trọng số thừa so với prefill nguyên khối.</p>
-<div class="formula">cost_MoE(c) ≈ W_read · min(1, E_touched(c)/E)  +  η · c<br>
-chi phí mỗi token ≈ W_read / c + η   → <b>giảm mạnh khi c tăng</b>, <b>không phụ thuộc t</b></div>
+<div class="eq">
+  <div class="m">\(\displaystyle \mathrm{cost}_{\mathrm{MoE}}(c) \approx W_{\text{read}}\cdot \min\!\Big(1, \frac{E_{\text{touched}}(c)}{E}\Big) + \eta\, c\)</div><div class="n">\(W_{\text{read}}\): thời gian đọc trọng số expert từ HBM</div>
+  <div class="m">\(\displaystyle \frac{\mathrm{cost}_{\mathrm{MoE}}}{c} \approx \frac{W_{\text{read}}}{c} + \eta\)</div><div class="n">chi phí mỗi token: <b>giảm mạnh khi \(c\) tăng</b>, <b>không phụ thuộc \(t\)</b></div>
+</div>
 
 <h3><span class="op" style="background:var(--fa);opacity:.55"></span>Sparse attention có indexer: attention rẻ đi, ràng buộc chuyển sang bộ nhớ</h3>
 <p>Thế hệ mới (DeepSeek V3.2/V4 với DSA và CSA, Qwen3.8-Flash-Next với QSA, GLM-5.3-Flash, MiniMax M3) thay full attention bằng hai bước. <b>Indexer</b> chấm điểm mỗi token mới với toàn bộ t key cũ bằng key nhỏ (128 chiều, FP8) rồi chọn top-k, thường k ≈ 2048 token hoặc 512 block. <b>Attention thật</b> chỉ chạy trên k token được chọn.</p>
-<div class="formula">cost_SA(c, t) ≈ α_idx · c · t  +  κ · c · k  +  β · c<br>
-                 indexer (tuyến tính theo t, α_idx ≈ α/10 … α/15)   attention top-k (không đổi theo t)<br>
-mem_idx(c, t) ≈ c · t · H_idx · 4 byte    ← buffer logits của indexer, phình theo <b>cả c lẫn t</b></div>
-<p>Hai hệ quả. Thứ nhất, thời gian mỗi token vẫn tăng theo t nhưng chậm hơn full attention khoảng một bậc, nên ngưỡng context mà attention bắt đầu kẹp chunk dịch từ khoảng 16K lên khoảng 256K. Thứ hai, buffer logits c·t là ràng buộc mới: vLLM issue #56457 ghi nhận buffer này phình theo độ dài context tới mức OOM khi prefill dài. Ở t lớn, chunk của layer indexer bị ép nhỏ vì <b>bộ nhớ</b>, không vì thời gian. GDN và MoE không có ràng buộc này.</p>
+<div class="eq">
+  <div class="m">\(\displaystyle \mathrm{cost}_{\mathrm{SA}}(c,t) \approx \underbrace{\alpha_{\text{idx}}\, c\, t}_{\text{indexer}} + \underbrace{\kappa\, c\, k}_{\text{top-}k\ \text{attention}} + \beta\, c\)</div><div class="n">indexer tuyến tính theo \(t\) với \(\alpha_{\text{idx}} \approx \alpha/10 \ldots \alpha/15\); phần top-\(k\) không đổi theo \(t\)</div>
+  <div class="m">\(\displaystyle \mathrm{mem}_{\text{idx}}(c,t) \approx c\cdot t\cdot H_{\text{idx}}\cdot 4\ \text{byte}\)</div><div class="n">buffer logits của indexer, phình theo <b>cả \(c\) lẫn \(t\)</b></div>
+</div>
+<p>Hai hệ quả. Thứ nhất, thời gian mỗi token vẫn tăng theo t nhưng chậm hơn full attention khoảng một bậc, nên ngưỡng context mà attention bắt đầu kẹp chunk dịch từ khoảng 16K lên khoảng 256K. Thứ hai, buffer logits \(c\cdot t\) là ràng buộc mới: vLLM issue #56457 ghi nhận buffer này phình theo độ dài context tới mức OOM khi prefill dài. Ở t lớn, chunk của layer indexer bị ép nhỏ vì <b>bộ nhớ</b>, không vì thời gian. GDN và MoE không có ràng buộc này.</p>
 
 <figure>
 <svg viewBox="0 0 640 260" role="img" aria-label="Chi phí mỗi token theo chunk size cho ba operator">
@@ -236,13 +274,13 @@ mem_idx(c, t) ≈ c · t · H_idx · 4 byte    ← buffer logits của indexer, 
 <tr><td>Qwen3-30B-A3B</td><td>Chỉ full attention</td><td>128 expert, top-8</td><td>32K–128K</td><td>1 × H200</td></tr>
 </table></div>
 <p>Số liệu lấy từ model card trên Hugging Face ngày 17/09/2026, kiểm tra lại <code>config.json</code> khi tải. Qwen3.8-27B tách sạch câu hỏi SSM-vs-attention trong cùng họ với anchor. Qwen3-30B-A3B đối chiếu với Layered Prefill.</p>
-<div class="why"><b>Vì sao quan trọng với paper</b>Bốn loại operator, ba <i>loại</i> ràng buộc chunk khác nhau. Một chunk chung không thể vừa tất cả, và số loại operator trong một model chỉ tăng. Xu hướng sparse attention làm yếu cơ chế 1/t của full attention, nhưng thêm một ràng buộc bộ nhớ mới mà GDN và MoE không có. Rủi ro thật: ở 32K–128K trên model sparse, attention có thể rẻ tới mức chunk đồng nhất không còn bị kẹp. Điều này phải đo ở tuần 1–2 trên Qwen3.8-Flash-Next, không đoán.</div>
+<div class="why"><b>Vì sao quan trọng với paper</b>Bốn loại operator, ba <i>loại</i> ràng buộc chunk khác nhau. Một chunk chung không thể vừa tất cả, và số loại operator trong một model chỉ tăng. Xu hướng sparse attention làm yếu cơ chế \(1/t\) của full attention, nhưng thêm một ràng buộc bộ nhớ mới mà GDN và MoE không có. Rủi ro thật: ở 32K–128K trên model sparse, attention có thể rẻ tới mức chunk đồng nhất không còn bị kẹp. Điều này phải đo ở tuần 1–2 trên Qwen3.8-Flash-Next, không đoán.</div>
 
 <h3>Ba loại ràng buộc, một bảng để nhớ</h3>
 <div class="tbl"><table>
 <tr><th>Loại ràng buộc</th><th>Operator</th><th>Hình dạng</th><th>Chunk muốn</th></tr>
 <tr><td>Thời gian theo t</td><td>Full attention; indexer của sparse attention (hệ số nhỏ)</td><td>cost/token ∝ t</td><td>Nhỏ dần khi t tăng</td></tr>
-<tr><td>Bộ nhớ theo c·t</td><td>Buffer logits indexer (vLLM #56457); buffer chunked-scan GDN/KDA (vLLM #54775)</td><td>mem ∝ c·t</td><td>Nhỏ dần khi t tăng, vì bộ nhớ</td></tr>
+<tr><td>Bộ nhớ theo \(c\cdot t\)</td><td>Buffer logits indexer (vLLM #56457); buffer chunked-scan GDN/KDA (vLLM #54775)</td><td>mem ∝ \(c\cdot t\)</td><td>Nhỏ dần khi t tăng, vì bộ nhớ</td></tr>
 <tr><td>Khấu hao</td><td>MoE (đọc expert mỗi chunk); launch kernel GDN</td><td>cost/token ∝ 1/c</td><td>Càng lớn càng tốt, không phụ thuộc t</td></tr>
 </table></div>
 <div class="why"><b>Vì sao quan trọng với paper</b>Ba loại operator có ba hàm chi phí khác hình dạng. Chỉ attention phụ thuộc t. GDN và MoE thích chunk lớn. Một chunk chung không thể vừa cả ba.</div>
@@ -256,18 +294,20 @@ mem_idx(c, t) ≈ c · t · H_idx · 4 byte    ← buffer logits của indexer, 
 <tr><td>SLO</td><td>Cam kết dạng "P99 TBT ≤ 50 ms" hoặc "P90 TTFT ≤ 2 s".</td><td>Người vận hành</td></tr>
 <tr><td>Goodput</td><td>Số request mỗi giây <i>đạt đủ</i> SLO.</td><td>Chỉ số so sánh chính giữa scheduler</td></tr>
 </table></div>
-<p>Dùng P99 chứ không dùng trung bình vì một iteration dài (chunk quá to) làm mọi request đang decode giật cùng lúc; trung bình che mất điều đó. Với SLO TBT B, mỗi iteration có một <b>budget prefill</b> P = B − D. Chunk phải thoả cost(c) ≤ P.</p>
+<p>Dùng P99 chứ không dùng trung bình vì một iteration dài (chunk quá to) làm mọi request đang decode giật cùng lúc; trung bình che mất điều đó. Với SLO TBT B, mỗi iteration có một <b>budget prefill</b> \(P = B - D\). Chunk phải thoả cost(c) ≤ P.</p>
 <div class="why"><b>Vì sao quan trọng với paper</b>Mọi kết quả của HyPrefill được báo cáo dạng "TTFT giảm X% <i>ở P99 TBT không đổi</i>". Không giữ TBT cố định thì so sánh vô nghĩa, vì ai cũng giảm được TTFT bằng cách tăng chunk.</div>
 
 <h2 id="s5">5. Luận điểm của paper trong năm bước</h2>
 <ol>
-<li><b>Chunk lớn nhất mà attention chịu được co lại theo t.</b> Giải cost_FA(c, t) ≤ P với t lớn:
-<div class="formula">c*_FA(t) ≈ P / (α · t)</div>
+<li><b>Chunk lớn nhất mà attention chịu được co lại theo t.</b> Giải \(\mathrm{cost}_{\mathrm{FA}}(c,t)\) ≤ P với t lớn:
+<div class="eq">
+  <div class="m">\(\displaystyle c^{*}_{\mathrm{FA}}(t) \approx \frac{P}{\alpha\, t}\)</div><div class="n">chunk lớn nhất attention chịu được co lại theo \(1/t\)</div>
+</div>
 Ở 8K context, attention có thể chịu chunk vài nghìn token. Ở 128K, chỉ vài trăm.</li>
-<li><b>Với sparse attention, ràng buộc chuyển loại chứ không biến mất.</b> Indexer vẫn cho c*_idx(t) ≈ P/(α_idx·t) nhưng α_idx nhỏ hơn một bậc, nên ngưỡng kẹp dịch lên ~256K. Đồng thời buffer logits cho c ≤ M/(t·H_idx·4): ở t lớn, bộ nhớ kẹp chunk trước cả thời gian.</li>
-<li><b>Chunk tối ưu của GDN và MoE không phụ thuộc t và nằm ở phía lớn.</b> Chi phí mỗi token của chúng giảm theo c nên với budget P, chúng muốn c càng lớn càng tốt cho tới khi cost_GDN(c) + cost_MoE(c) chạm P. Giá trị đó không đổi khi t tăng.</li>
+<li><b>Với sparse attention, ràng buộc chuyển loại chứ không biến mất.</b> Indexer vẫn cho \(c^{*}_{\text{idx}}(t)\) ≈ P/(\(\alpha_{\text{idx}}\)·t) nhưng \(\alpha_{\text{idx}}\) nhỏ hơn một bậc, nên ngưỡng kẹp dịch lên ~256K. Đồng thời buffer logits cho c ≤ M/(t·\(H_{\text{idx}}\)·4): ở t lớn, bộ nhớ kẹp chunk trước cả thời gian.</li>
+<li><b>Chunk tối ưu của GDN và MoE không phụ thuộc t và nằm ở phía lớn.</b> Chi phí mỗi token của chúng giảm theo c nên với budget P, chúng muốn c càng lớn càng tốt cho tới khi \(\mathrm{cost}_{\mathrm{GDN}}(c)\) + \(\mathrm{cost}_{\mathrm{MoE}}(c)\) chạm P. Giá trị đó không đổi khi t tăng.</li>
 <li><b>Chunk đồng nhất là min over operators, tính trên cả ba loại ràng buộc.</b> Vì mọi layer phải xử lý cùng c mỗi iteration, c bị kẹp bởi ràng buộc chặt nhất: attention ở context dài (thời gian), hoặc indexer ở context rất dài (bộ nhớ). GDN và MoE bị kéo theo, chạy chunk nhỏ ở đúng vùng chúng kém hiệu quả nhất. Đây là quan sát trung tâm.</li>
-<li><b>Tách chunk theo operator group.</b> Attention group xử lý c_FA(t) token mỗi iteration. Nhóm non-attention (GDN + MoE) tích luỹ activation của k chunk vào <b>buffer</b> rồi xử lý k·c_FA token một lần. Các nhóm non-attention khác nhau chạy chunk lớn ở iteration khác nhau (<b>stagger</b>) để không iteration nào vượt B.
+<li><b>Tách chunk theo operator group.</b> Attention group xử lý \(c_{\mathrm{FA}}(t)\) token mỗi iteration. Nhóm non-attention (GDN + MoE) tích luỹ activation của k chunk vào <b>buffer</b> rồi xử lý \(k\cdot c_{\mathrm{FA}}\) token một lần. Các nhóm non-attention khác nhau chạy chunk lớn ở iteration khác nhau (<b>stagger</b>) để không iteration nào vượt B.
 <figure>
 <svg viewBox="0 0 640 230" role="img" aria-label="So sánh lịch chunk đồng nhất và chunk tách theo group">
   <g font-size="12" fill="currentColor" font-weight="600"><text x="10" y="22">Đồng nhất</text><text x="10" y="132">Tách theo group (k = 4)</text></g>
@@ -292,11 +332,12 @@ mem_idx(c, t) ≈ c · t · H_idx · 4 byte    ← buffer logits của indexer, 
 <div class="calc" id="calc">
 <div class="eyebrow">Bộ tính chunk</div>
 <h3 style="margin-top:.3rem">Tự nghiệm luận điểm với hằng số minh hoạ</h3>
-<p style="font-size:.95em;color:var(--muted)">Hằng số dưới đây là giá trị minh hoạ cùng bậc với H200, không phải số đo. Tuần 1–2 sẽ thay bằng số thật. Kéo t lên và xem c*_FA co lại trong khi c*_GDN đứng yên, và gain tăng theo.</p>
+<p style="font-size:.95em;background:var(--note);color:var(--note-ink);border-radius:6px;padding:.6rem .8rem"><b>Lưu ý:</b> bộ tính này dùng cost model gốc của proposal — chỉ có chunk theo operator, <b>chưa có pipeline theo chiều sâu</b>. Mục 9 cho thấy nó bỏ sót cơ chế mang phần lớn gain. Giữ lại để cảm nhận ba loại ràng buộc, đừng dùng để ước lượng gain.</p>
+<p style="font-size:.95em;color:var(--muted)">Hằng số dưới đây là giá trị minh hoạ cùng bậc với H200, không phải số đo. Tuần 1–2 sẽ thay bằng số thật. Kéo t lên và xem \(c^{*}_{\mathrm{FA}}\) co lại trong khi \(c^{*}_{\mathrm{GDN}}\) đứng yên, và gain tăng theo.</p>
 <div class="grid">
   <label>Loại attention: <span id="v_mode"></span><select id="in_mode" style="display:block;width:100%;margin-top:.2rem"><option value="full">Full attention (Qwen3-Next)</option><option value="sparse">Sparse + indexer (Qwen3.8-Flash-Next)</option></select></label>
   <label>Context t (token): <span id="v_t"></span><input id="in_t" type="range" min="12" max="20" step="0.1" value="15"></label>
-  <label>Budget prefill mỗi iteration P = B − D (ms): <span id="v_P"></span><input id="in_P" type="range" min="5" max="150" step="1" value="40"></label>
+  <label>Budget prefill mỗi iteration \(P = B - D\) (ms): <span id="v_P"></span><input id="in_P" type="range" min="5" max="150" step="1" value="40"></label>
   <label>α · attention (µs / token / 1K context): <span id="v_a"></span><input id="in_a" type="range" min="0.05" max="1" step="0.01" value="0.25"></label>
   <label>GDN: overhead mỗi lần gọi (ms): <span id="v_g0"></span><input id="in_g0" type="range" min="0.5" max="10" step="0.1" value="3"></label>
   <label>GDN: chi phí mỗi token (µs): <span id="v_g1"></span><input id="in_g1" type="range" min="1" max="20" step="0.5" value="6"></label>
@@ -305,20 +346,22 @@ mem_idx(c, t) ≈ c · t · H_idx · 4 byte    ← buffer logits của indexer, 
   <label>Sparse: bộ nhớ buffer indexer tối đa (GB): <span id="v_M"></span><input id="in_M" type="range" min="1" max="40" step="1" value="8"></label>
 </div>
 <div class="out">
-  <div><b>c*_FA(t) (uniform)</b><span id="o_cu"></span></div>
-  <div><b>c_FA khi tách</b><span id="o_cd"></span></div>
+  <div><b>\(c^{*}_{\mathrm{FA}}(t)\) (uniform)</b><span id="o_cu"></span></div>
+  <div><b>\(c_{\mathrm{FA}}\) khi tách</b><span id="o_cd"></span></div>
   <div><b>k tốt nhất (gom)</b><span id="o_k"></span></div>
   <div><b>Gain tốc độ prefill</b><span id="o_gain"></span></div>
 </div>
 <canvas id="cv" height="300" aria-label="Gain theo context length"></canvas>
-<p style="font-size:.85em;color:var(--muted);margin-bottom:0">Đường: gain = r_tách / r_đồng nhất theo t, với các hằng số hiện tại. Đường ngang 1.25 là ngưỡng GO của cổng G1. Chế độ sparse chia α cho 12 (indexer rẻ hơn full attention) và thêm ràng buộc bộ nhớ c·t·H_idx·4 byte ≤ M với H_idx = 64: bạn sẽ thấy ngưỡng gain dịch sang phải, và ở t rất lớn chunk bị bộ nhớ kẹp trước thời gian.</p>
+<p style="font-size:.85em;color:var(--muted);margin-bottom:0">Đường: gain = \(r_t\)ách / r_đồng nhất theo t, với các hằng số hiện tại. Đường ngang 1.25 là ngưỡng GO của cổng G1. Chế độ sparse chia α cho 12 (indexer rẻ hơn full attention) và thêm ràng buộc bộ nhớ \(c\cdot t\cdot H_{\text{idx}}\cdot 4\) byte ≤ M với \(H_{\text{idx}}\) = 64: bạn sẽ thấy ngưỡng gain dịch sang phải, và ở t rất lớn chunk bị bộ nhớ kẹp trước thời gian.</p>
 </div>
 
 <h3>Cost model chính thức mà bạn sẽ viết trong paper</h3>
-<div class="formula">Đồng nhất:  r_u(t) = max c  s.t.  cost_FA(c,t) + cost_GDN(c) + cost_MoE(c) ≤ P<br>
-Tách:       r_d(t) = max c  s.t.  cost_FA(c,t) + [cost_GDN(k·c) + cost_MoE(k·c)] / k ≤ P   (khấu hao)<br>
-                          và   cost_FA(c,t) + max_g cost_g(k·c) ≤ P                           (đỉnh, nhờ so le)<br>
-Gain(t) = r_d(t) / r_u(t)</div>
+<div class="eq">
+  <div class="m">\(\displaystyle r_u(t) = \max\big\{\, c : \mathrm{cost}_{\mathrm{FA}}(c,t) + \mathrm{cost}_{\mathrm{GDN}}(c) + \mathrm{cost}_{\mathrm{MoE}}(c) \le P \,\big\}\)</div><div class="n"><b>Đồng nhất</b>: mọi operator cùng chunk \(c\)</div>
+  <div class="m">\(\displaystyle \begin{aligned} r_d(t) = \max\Big\{\, c :\ & \mathrm{cost}_{\mathrm{FA}}(c,t) \\ &+ \frac{1}{k}\big[\mathrm{cost}_{\mathrm{GDN}}(kc) + \mathrm{cost}_{\mathrm{MoE}}(kc)\big] \le P \,\Big\} \end{aligned}\)</div><div class="n"><b>Tách</b>: ràng buộc khấu hao</div>
+  <div class="m">\(\displaystyle \mathrm{cost}_{\mathrm{FA}}(c,t) + \max_{g}\ \mathrm{cost}_{g}(kc) \le P\)</div><div class="n">đồng thời: ràng buộc đỉnh mỗi iteration, nhờ so le</div>
+  <div class="m">\(\displaystyle \mathrm{Gain}(t) = \frac{r_d(t)}{r_u(t)}\)</div><div class="n">lưu ý mục 9: mô hình này chưa có pipeline theo chiều sâu</div>
+</div>
 <p>Ba hàm cost lấy từ bảng đo tuần 1–2. Toàn bộ mục 2 của kế hoạch (thí nghiệm 1) chỉ là đo ba hàm này rồi tính hai dòng trên.</p>
 <div class="why"><b>Vì sao quan trọng với paper</b>Nếu Gain(t) ≥ 1.25 ở t ≥ 32K trên hai model, giả thuyết sống và bạn đi tiếp. Nếu không, bạn biết sau hai tuần, chưa viết một dòng scheduler nào.</div>
 
@@ -337,7 +380,7 @@ Gain(t) = r_d(t) / r_u(t)</div>
 
 <h2 id="s7">7. Tự kiểm tra trước khi sang tuần 1</h2>
 <details><summary>1. Vì sao decode batch nhỏ là memory-bound còn prefill là compute-bound?</summary><p>Cường độ số học của một matmul trọng số ≈ số token n. Decode n nhỏ nên dưới điểm gãy ~200 FLOP/byte của H200: GPU chờ đọc trọng số. Prefill n hàng nghìn nên vượt xa điểm gãy: GPU bận tính.</p></details>
-<details><summary>2. TBT và TTFT thay đổi thế nào khi tăng chunk size?</summary><p>TBT ≈ T_iter = D + T_chunk(c) tăng. TTFT ≈ (L/c)·T_iter giảm vì ít iteration hơn và mỗi chunk khấu hao overhead tốt hơn.</p></details>
+<details><summary>2. TBT và TTFT thay đổi thế nào khi tăng chunk size?</summary><p>TBT ≈ \(T_{\text{iter}}\) = D + \(T_{\text{chunk}}(c)\) tăng. TTFT ≈ (L/c)·\(T_{\text{iter}}\) giảm vì ít iteration hơn và mỗi chunk khấu hao overhead tốt hơn.</p></details>
 <details><summary>3. Vì sao chi phí mỗi token của attention gần như không đổi theo c nhưng tăng theo t?</summary><p>Mỗi token mới phải nhìn t token cũ, nên chi phí mỗi token ≈ α·(t + c/2). Với t ≫ c, số hạng t chi phối.</p></details>
 <details><summary>4. GDN có state cố định. Vậy vì sao chi phí mỗi token của nó vẫn giảm khi c tăng?</summary><p>Vì overhead cố định mỗi lần gọi kernel (launch, đọc state, đọc trọng số projection) được chia cho c token. Không phải vì bản thân phép tính rẻ đi.</p></details>
 <details><summary>5. Với 512 expert và top-10, chunk 256 token chạm bao nhiêu expert?</summary><p>E·[1 − (1 − 10/512)^256] ≈ 512·(1 − 0.0065) ≈ 509. Gần như tất cả, nên mỗi chunk đọc gần hết trọng số expert.</p></details>
@@ -345,9 +388,9 @@ Gain(t) = r_d(t) / r_u(t)</div>
 <details><summary>7. HyPrefill đổi chunk kernel 64 của GDN không?</summary><p>Không. Chunk kernel C = 64 là hằng số toán học phải giữ cho bit-identical. HyPrefill đổi số token c mà scheduler đưa vào một lần gọi, tức bội của 64.</p></details>
 <details><summary>8. Vì sao cần "so le" (stagger) khi gom chunk cho GDN và MoE?</summary><p>Nếu GDN và MoE cùng chạy chunk lớn trong một iteration, iteration đó vượt budget B và TBT giật. So le để mỗi iteration chỉ có tối đa một group chạy chunk lớn.</p></details>
 <details><summary>9. Điều gì làm COREY thất bại, và HyPrefill né bằng cách nào?</summary><p>COREY ước lượng entropy lúc chạy để chọn chunk; chi phí ước lượng 0.7–4.6% lớn hơn lợi ích. HyPrefill dùng bảng cost đo offline và chỉ tra bảng theo (operator, t).</p></details>
-<details><summary>10. Kết quả nào sau hai tuần khiến bạn dừng dự án?</summary><p>Gain(t) &lt; 1.15 ở mọi t ≤ 256K trên cả họ full-attention lẫn họ sparse. Nếu chỉ họ sparse thất bại, paper thu hẹp về họ full-attention và nộp sớm. Dự phòng cho tương lai sparse là StateGraph.</p></details>
-<details><summary>11. Sparse attention có indexer làm luận điểm yếu đi ở đâu và mạnh lên ở đâu?</summary><p>Yếu: attention thật chỉ trên top-k nên hệ số theo t giảm khoảng một bậc, ngưỡng kẹp dịch từ ~16K lên ~256K; ở 32K–128K chunk đồng nhất có thể không còn bị attention kẹp. Mạnh: buffer logits của indexer là ràng buộc bộ nhớ c·t mới, GDN và MoE không có, nên "min over operators" chuyển từ thời gian sang bộ nhớ thay vì biến mất.</p></details>
-<details><summary>12. Vì sao dự phòng đổi từ VeriPrefill sang StateGraph?</summary><p>VeriPrefill cắt bớt token prompt để giảm TTFT; khi attention đã thưa và rẻ, lợi ích đó nhỏ đi. StateGraph quản lý đúng các loại state của kiến trúc sparse (compressed KV, indexer key, top-k reuse, SWA replay), nên giá trị tăng theo xu hướng sparse.</p></details>
+<details><summary>10. Kết quả nào sau hai tuần khiến bạn dừng dự án?</summary><p>Xem cổng G1 mới ở mục 9.11: G1a (pipeline so với Sarathi ≥ 1.20×), G1b (HyPrefill so với Layered ≥ 1.25× ở ít nhất một chế độ), G1c (kernel indexer có cấp phát buffer \(c\cdot t\) theo mỗi lần gọi không). Trượt thì chuyển phương án lui số một là bài đo độ trung thực FP4.</p></details>
+<details><summary>11. Sparse attention có indexer làm luận điểm yếu đi ở đâu và mạnh lên ở đâu?</summary><p>Yếu: attention thật chỉ trên top-k nên hệ số theo t giảm khoảng một bậc, ngưỡng kẹp dịch từ ~16K lên ~256K; ở 32K–128K chunk đồng nhất có thể không còn bị attention kẹp. Mạnh: buffer logits của indexer là ràng buộc bộ nhớ \(c\cdot t\) mới, GDN và MoE không có, nên "min over operators" chuyển từ thời gian sang bộ nhớ thay vì biến mất.</p></details>
+<details><summary>12. Thứ tự phương án lui hiện tại là gì, và vì sao?</summary><p>Một: bài đo độ trung thực FP4 trên Hopper (bản B), vì dữ liệu có sẵn từ tuần 2. Hai: VeriPrefill, điểm cao nhưng phải dựng từ đầu và mất giá trị khi attention thưa. Ba: StateGraph, hợp xu hướng sparse nhất nhưng quá chậm cho tháng 1, để làm sau HyPrefill.</p></details>
 
 <h2 id="s8">8. Bài giảng từng paper</h2>
 <p>Chín bài quan trọng nhất, mỗi bài gồm: vấn đề, cơ chế với công thức gốc, số liệu, điểm yếu, và điều HyPrefill lấy hoặc phải trả lời. Ghi chú đầy đủ hơn nằm trong thư mục <code>lecture_notes/</code>. Số liệu trích trực tiếp từ bản HTML trên arXiv.</p>
@@ -357,9 +400,11 @@ Gain(t) = r_d(t) / r_u(t)</div>
 <p class="eyebrow"><a href="https://arxiv.org/abs/2403.02310">arXiv 2403.02310</a> · Agrawal et al.</p>
 <p><b>Vấn đề.</b> Scheduler ưu tiên prefill (vLLM đời đầu) chèn một prefill dài vào giữa chuỗi decode, làm mọi request đang sinh token bị "đóng băng". Số liệu của paper: Falcon-180B, prompt 4K token mất ~1150 ms, trong khi một iteration decode batch 32 chỉ ~200 ms, nên bubble có thể tới ~950 ms. Scheduler ưu tiên decode (FasterTransformer) thì ngược lại: không nhận request mới cho tới khi batch decode xong, TTFT cao và throughput thấp.</p>
 <p><b>Cơ chế.</b> Hai kỹ thuật phải đi cùng nhau. <i>Chunked prefill</i>: cắt prompt thành các chunk gần bằng nhau, vì chỉ ~512 token đã bão hoà compute GPU trong khi prompt thực tế dài hơn nhiều (median 1730–7059 token trên hai dataset của họ). <i>Stall-free scheduling</i>: mỗi iteration, xếp mọi token decode vào batch trước, rồi phần prefill đang dở, rồi request mới, trong giới hạn một <b>token budget</b>. Token budget được chọn bằng profiling offline: số token lớn nhất đóng gói vào một batch mà không vi phạm TBT SLO.</p>
-<div class="formula">Thứ tự mỗi iteration: decode của mọi request → chunk còn lại của prefill đang dở → request mới, tổng ≤ token budget<br>
-Định nghĩa: TTFT = từ lúc request đến tới token đầu; TBT = khoảng cách hai token liên tiếp<br>
-SLO trong paper: P99 TBT ≤ 5× (strict) hoặc 25× (relaxed) thời gian một iteration decode thuần</div>
+<div class="eq">
+  <div class="t"><b>Thứ tự mỗi iteration:</b> decode của mọi request, rồi phần còn lại của prefill đang dở, rồi request mới, tổng không vượt token budget.</div>
+  <div class="t"><b>Định nghĩa:</b> TTFT là thời gian từ lúc request đến tới token đầu; TBT là khoảng cách giữa hai token liên tiếp.</div>
+  <div class="t"><b>SLO trong paper:</b> P99 TBT không vượt 5× (strict) hoặc 25× (relaxed) thời gian một iteration decode thuần.</div>
+</div>
 <p>Một chi tiết hay bị bỏ qua: <b>tile quantization</b>. Chunk 257 token chậm hơn chunk 256 tới 32% vì matmul phải xử lý thêm nguyên một tile. Chunk phải là bội của tile size.</p>
 <p><b>Số liệu.</b> Mistral-7B (1×A100), Yi-34B (2×A100), LLaMA2-70B (8×A40), Falcon-180B (8×A100 hai node). Capacity dưới SLO strict tăng 2.6×, 3.7×, 4.3×, 3.6× so với vLLM. Ablation trên Yi-34B: chỉ hybrid batching cho P50 TTFT 0.53 s nhưng P99 TBT 0.68 s; chỉ chunked prefill cho 1.04 s và 0.17 s; cả hai cho 0.76 s và 0.14 s. Overhead của chunking tối đa ~25% ở chunk 512, gần bằng không ở chunk 2048.</p>
 <p><b>Điểm yếu.</b> Token budget là một số toàn cục, tune offline cho từng cặp model và phần cứng, không thích nghi. Cost model ngầm giả định mọi layer giống nhau. Không có SSM, GDN hay MoE.</p>
@@ -371,9 +416,11 @@ SLO trong paper: P99 TBT ≤ 5× (strict) hoặc 25× (relaxed) thời gian mộ
 <p class="eyebrow"><a href="https://arxiv.org/abs/2401.09670">arXiv 2401.09670</a> · Zhong et al.</p>
 <p><b>Vấn đề.</b> Khi hai pha chung GPU, thêm một prefill vào batch decode làm cả hai chậm đi. Model 13B trên một GPU: hệ colocated đạt ~1.6 request/s ở 90% SLO, trong khi prefill-only đạt 5.6 và decode-only đạt 10 request/s mỗi GPU. Một hệ tách hai pha (2 GPU prefill + 1 GPU decode) đạt trung bình 3.3 request/s mỗi GPU, gấp 2.1×. Paper nói thẳng về chunked prefill kiểu Sarathi: "alleviates the slowdown... but does not eliminate it", và chia N chunk làm chi phí đọc lại KV cache thành O(N²).</p>
 <p><b>Cơ chế.</b> Prefill và decode chạy trên hai pool GPU riêng, mỗi pool chọn cấu hình tensor và pipeline parallelism riêng; KV cache truyền qua mạng theo mô hình <i>pull</i>, node decode kéo KV từ node prefill khi cần, dùng bộ nhớ node prefill làm hàng đợi đệm.</p>
-<div class="formula">Goodput = request rate lớn nhất mà X% request đạt SLO, tính trên mỗi GPU<br>
-Placement: liệt kê cấu hình song song → simulator (sai số &lt; 2%) → binary search rate → nhân bản instance; &lt; 1.3 phút<br>
-KV transfer: OPT-66B, 512 token, 10 request/s → 11.3 GB/s ≈ 90 Gbps; NVLink hoặc InfiniBand đủ, &gt;95% request truyền &lt; 30 ms</div>
+<div class="eq">
+  <div class="t"><b>Goodput:</b> request rate lớn nhất mà X% request đạt SLO, tính trên mỗi GPU.</div>
+  <div class="t"><b>Placement:</b> liệt kê cấu hình song song, chạy simulator (sai số dưới 2%), binary search rate, rồi nhân bản instance; toàn bộ mất dưới 1.3 phút.</div>
+  <div class="t"><b>KV transfer:</b> OPT-66B, 512 token, 10 request/s cần 11.3 GB/s (khoảng 90 Gbps); NVLink hoặc InfiniBand là đủ, trên 95% request truyền dưới 30 ms.</div>
+</div>
 <p><b>Số liệu.</b> 32 GPU A100-80GB, OPT-13B/66B/175B. Chatbot tăng 2.0–4.6× request rate so với vLLM ở 90% SLO; OPT-175B tăng tới 7.4× so với DeepSpeed-MII; Summarization chịu được SLO chặt hơn 12.6×. Ablation vLLM++ (vLLM với parallelism tối ưu) không cải thiện gì, chứng tỏ vấn đề là colocated chứ không phải cấu hình song song.</p>
 <p><b>Điểm yếu.</b> Tác giả thừa nhận với ít GPU thì "simpler non-disaggregated systems may reduce deployment complexity", và với workload offline chunked prefill có thể tốt hơn. Placement là tìm kiếm offline cho một workload giả định trước.</p>
 <div class="why"><b>Rút ra cho HyPrefill</b>Dùng <b>goodput</b> làm metric đầu bảng. Mượn khuôn "liệt kê cấu hình + simulator + binary search + báo sai số simulator" cho tuần 3–4. Mượn lập luận O(N²) của chunked prefill để nói ngược: GDN có state cố định nên không chịu phạt O(N²) như attention, đó là lý do định lượng để cho GDN chunk lớn hơn. Và phải trả lời câu "sao không PD cho xong": HyPrefill áp dụng ở mọi GPU chạy đồng thời hai pha, gồm cả node decode của hệ PD khi có append-prefill.</div>
@@ -384,26 +431,30 @@ KV transfer: OPT-66B, 512 token, 10 request/s → 11.3 GB/s ≈ 90 Gbps; NVLink 
 <p class="eyebrow"><a href="https://arxiv.org/abs/2510.08055">arXiv 2510.08055</a> · Lee et al., SNU</p>
 <p><b>Vấn đề.</b> Chunked prefill phá tính thưa của MoE, paper gọi là <b>sparsity erosion</b>: "chunking inflates expert coverage while suppressing reuse". Bảng 1 trên Qwen3-30B-A3B: expert coverage dưới 50% ở batch 16, dưới 70% ở batch 64, 86.3% ở batch 128. Mỗi expert nhận rất ít token, dưới ridge point 100–300 op/byte, nên layer MoE thành memory-bound: trả giá bằng băng thông đọc trọng số, không phải FLOP. Bảng 7 đo trực tiếp: 100 request arXiv (prompt trung bình 9194 token), traffic đọc expert giảm từ 35.6 TB xuống 21.7 TB, tức −39%. Trên ShareGPT (2340 token) chỉ −12% vì prompt ngắn ít bị chia. Bảng 2 cho thấy tiến thoái lưỡng nan: chunk 512→2048 giảm expert load 955→304 GB mỗi request và energy 60.2→32.4 mJ/token, nhưng P99 TBT tăng 48.4→129 ms.</p>
 <p><b>Cơ chế.</b> Chia model theo chiều dọc thành các nhóm layer liên tiếp. Mỗi iteration, đúng một nhóm layer chạy cả prefill lẫn decode cho request mới, các nhóm còn lại chỉ decode. Prefill của request mới đi qua mỗi layer đúng một lần, với toàn bộ prompt, không chia chunk theo token.</p>
-<div class="formula">N_lg(L) = max(1, ⌈L / 512⌉)   số nhóm layer, chọn để khối lượng mỗi iteration ≈ baseline chunk 512<br>
-Iteration i: nhóm layer i chạy prefill (cả prompt) + decode; nhóm khác chỉ decode<br>
-Mỗi prompt đi qua prefill path của mỗi layer đúng một lần → expert được load một lần cho cả prompt</div>
-<p><b>Số liệu.</b> 2×H100, Qwen3-30B-A3B và GPT-OSS-20B. Bảng 6 (arXiv, 1.3 request/s): mean TTFT 2.80→1.24 s (−56%), P99 TTFT −53%, P99 TBT −27%. Energy mỗi token −20 đến −22%. Mở rộng: GPT-OSS-120B TTFT −65%, Qwen3-235B trên 8×H100 −47%. Bảng 11: N_lg = 2 cho TTFT thấp nhất nhưng P99 TBT 138 ms; N_lg = 16 cho TBT 35.7 ms nhưng TTFT 1.27 s. Ablation quyết định: trên model dense Qwen3-8B, layered prefill <b>thua</b> chunked prefill (TTFT 1.45 s so với 0.955 s).</p>
-<p><b>Điểm yếu.</b> Chỉ MoE + full attention, không một chữ về SSM, GDN, linear attention. Quản lý activation trung gian giữa các nhóm layer không được đặc tả. N_lg(L) tĩnh theo độ dài prompt, không tối ưu theo SLO.</p>
+<div class="eq">
+  <div class="m">\(\displaystyle N_{\text{lg}}(L) = \max\big(1, \lceil L/512 \rceil\big)\)</div><div class="n">số nhóm layer, chọn để khối lượng mỗi iteration xấp xỉ baseline chunk 512</div>
+  <div class="t"><b>Iteration \(i\):</b> nhóm layer \(i\) chạy prefill cho cả prompt cộng decode; các nhóm khác chỉ decode.</div>
+  <div class="t">Mỗi prompt đi qua prefill path của mỗi layer đúng một lần, nên trọng số expert được đọc một lần cho cả prompt.</div>
+</div>
+<p><b>Số liệu.</b> 2×H100, Qwen3-30B-A3B và GPT-OSS-20B. Bảng 6 (arXiv, 1.3 request/s): mean TTFT 2.80→1.24 s (−56%), P99 TTFT −53%, P99 TBT −27%. Energy mỗi token −20 đến −22%. Mở rộng: GPT-OSS-120B TTFT −65%, Qwen3-235B trên 8×H100 −47%. Bảng 11: \(N_{\text{lg}}\) = 2 cho TTFT thấp nhất nhưng P99 TBT 138 ms; \(N_{\text{lg}}\) = 16 cho TBT 35.7 ms nhưng TTFT 1.27 s. Ablation quyết định: trên model dense Qwen3-8B, layered prefill <b>thua</b> chunked prefill (TTFT 1.45 s so với 0.955 s).</p>
+<p><b>Điểm yếu.</b> Chỉ MoE + full attention, không một chữ về SSM, GDN, linear attention. Quản lý activation trung gian giữa các nhóm layer không được đặc tả. \(N_{\text{lg}}(L)\) tĩnh theo độ dài prompt, không tối ưu theo SLO.</p>
 <div class="why"><b>Rút ra cho HyPrefill</b>Baseline quan trọng nhất, phải tái tạo Bảng 6 và Bảng 7 trên Qwen3-30B-A3B để làm điểm neo. Kế thừa lập luận "chunk theo token phá hiệu quả operator" và mở rộng sang GDN. Khác biệt: Layered Prefill dùng một granularity cho mọi nhóm; HyPrefill cho từng loại operator một chunk riêng, có buffer và so le. Reviewer sẽ hỏi hai câu: activation giữa các group quản lý thế nào, và trên model chỉ có attention + MoE thì HyPrefill có suy biến về Layered Prefill và có thắng nó không.</div>
 <details><summary>Tự kiểm tra: vì sao layered prefill thua trên model dense?</summary><p>Lợi ích đến từ tránh đọc lại trọng số expert. Model dense không có expert nên không có gì để tiết kiệm, trong khi chia theo nhóm layer làm tăng số iteration để prefill xong cả stack, thành overhead thuần.</p></details>
 
 <!-- ============ 8.4 SLOWeave ============ -->
 <h3 id="p4">8.4 SLOWeave (09/2026) — chunk theo deadline decode, một chunk cho cả model</h3>
 <p class="eyebrow"><a href="https://arxiv.org/abs/2609.07883">arXiv 2609.07883</a> · Song et al.</p>
-<p><b>Vấn đề.</b> Chunk tối ưu là hàm của nhiều biến thay đổi theo thời gian: C* = C*(n, L, D, T, λ) với n batch decode, L độ dài prompt, D mục tiêu TPOT, T hàm chi phí, λ cường độ đến. Một chunk tĩnh chỉ trúng một điểm. Chunk cố định "strands slack in every window", bỏ phí phần budget dư mỗi iteration. Ở TPOT 25 ms trên traffic hỗn hợp, full prefill đạt 6.9% SLO, fixed-1024 đạt 59.4%, SLOWeave đạt 79.4%.</p>
-<p><b>Cơ chế.</b> Cost model iteration T(n, c) chỉ cần <b>đơn điệu theo c</b>, có thể là bảng tra, regressor hay mô hình giải tích. Mỗi request decode có deadline token kế tiếp d_i = ℓ_i + D. Budget iteration là slack sớm nhất. Chọn chunk lớn nhất vừa budget bằng binary search.</p>
-<div class="formula">T(n,c) = 0.35 + 𝟙[n&gt;0]·(0.90 + 0.055n) + 𝟙[c&gt;0]·(0.40 + 0.006c)  ms   (mô hình synthetic mặc định)<br>
-B_t = max(0, min_i (d_i − s_t))<br>
-c*_t = max{ c ≤ min(C_max, L_t) : T(|A_t|, c) ≤ B_t }   → binary search O(log C_max)<br>
-Mệnh đề 1: nếu T đúng và đơn điệu, chunk chọn được vừa an toàn deadline vừa lớn nhất; với model học, kiểm tra T̂ + δ ≤ B_t</div>
+<p><b>Vấn đề.</b> Chunk tối ưu là hàm của nhiều biến thay đổi theo thời gian: \(C^{*} = C^{*}(n, L, D, T, \lambda)\) với n batch decode, L độ dài prompt, D mục tiêu TPOT, T hàm chi phí, λ cường độ đến. Một chunk tĩnh chỉ trúng một điểm. Chunk cố định "strands slack in every window", bỏ phí phần budget dư mỗi iteration. Ở TPOT 25 ms trên traffic hỗn hợp, full prefill đạt 6.9% SLO, fixed-1024 đạt 59.4%, SLOWeave đạt 79.4%.</p>
+<p><b>Cơ chế.</b> Cost model iteration T(n, c) chỉ cần <b>đơn điệu theo c</b>, có thể là bảng tra, regressor hay mô hình giải tích. Mỗi request decode có deadline token kế tiếp \(d_i = \ell_i + D\). Budget iteration là slack sớm nhất. Chọn chunk lớn nhất vừa budget bằng binary search.</p>
+<div class="eq">
+  <div class="m">\(\displaystyle \begin{aligned} T(n,c) = 0.35 &+ \mathbb{1}[n \gt 0]\,(0.90 + 0.055\,n) \\ &+ \mathbb{1}[c \gt 0]\,(0.40 + 0.006\,c)\quad \text{ms} \end{aligned}\)</div><div class="n">mô hình chi phí synthetic mặc định</div>
+  <div class="m">\(\displaystyle B_t = \max\big(0,\ \min_i\,(d_i - s_t)\big)\)</div><div class="n">slack tới deadline decode sớm nhất</div>
+  <div class="m">\(\displaystyle c^{*}_t = \max\big\{\, c \le \min(C_{\max}, L_t) : T(|A_t|, c) \le B_t \,\big\}\)</div><div class="n">tìm bằng binary search, \(O(\log C_{\max})\) lần gọi cost model</div>
+  <div class="t"><b>Mệnh đề 1:</b> nếu \(T\) đúng và đơn điệu, chunk chọn được vừa an toàn deadline vừa lớn nhất; với cost model học, kiểm tra \(\hat T + \delta \le B_t\).</div>
+</div>
 <p><b>Số liệu.</b> 8×A100 và 8×H100, model dense 8B và 70B. A100/8B mixed: P99 TTFT 1780→1190 ms, goodput 38.4→67.1 request/s. H100/70B long-context: P99 TTFT 5940→3960 ms, goodput 22.1→40.8. Ở TPOT 10 ms cải thiện tới 3.35×; ở TPOT 50 ms gần bằng full prefill vì SLO lỏng.</p>
-<p><b>Điểm yếu.</b> Tác giả thừa nhận cost thật không trơn vì kernel boundary, TP communication, prefix cache hit. Một chunk c*_t cho toàn bộ model. Không MoE, không SSM, không hybrid. Không mô hình preemption hay KV transfer.</p>
-<div class="why"><b>Rút ra cho HyPrefill</b>Mượn nguyên khung: B_t = min slack, ràng buộc T ≤ B_t, đơn điệu, binary search. Mở rộng thành vector (c_attn, c_GDN, c_MoE) với ba hàm chi phí riêng. Đây là baseline mạnh hơn Layered Prefill về thích nghi, phải cài lại và so trực tiếp. Câu hỏi reviewer chắc chắn đặt: "sao không chạy SLOWeave riêng cho mỗi group?" Trả lời: các group chia chung một deadline B_t và phụ thuộc nhau qua activation, nên là bài toán tối ưu đa biến ràng buộc chung, không tách được thành N lần SLOWeave độc lập.</div>
+<p><b>Điểm yếu.</b> Tác giả thừa nhận cost thật không trơn vì kernel boundary, TP communication, prefix cache hit. Một chunk \(c^{*}_{t}\) cho toàn bộ model. Không MoE, không SSM, không hybrid. Không mô hình preemption hay KV transfer.</p>
+<div class="why"><b>Rút ra cho HyPrefill</b>Mượn nguyên khung: \(B_t\) = min slack, ràng buộc T ≤ \(B_t\), đơn điệu, binary search. Mở rộng thành vector (\(c_{\text{attn}}\), \(c_{\mathrm{GDN}}\), \(c_{\mathrm{MoE}}\)) với ba hàm chi phí riêng. Đây là baseline mạnh hơn Layered Prefill về thích nghi, phải cài lại và so trực tiếp. Câu hỏi reviewer chắc chắn đặt: "sao không chạy SLOWeave riêng cho mỗi group?" Trả lời: các group chia chung một deadline \(B_t\) và phụ thuộc nhau qua activation, nên là bài toán tối ưu đa biến ràng buộc chung, không tách được thành N lần SLOWeave độc lập.</div>
 <details><summary>Tự kiểm tra: vì sao chỉ cần T đơn điệu?</summary><p>Binary search chỉ cần "tăng c thì T tăng" để loại một nửa khoảng mỗi bước khi so T(mid) với B. Không cần đạo hàm hay dạng giải tích.</p></details>
 
 <!-- ============ 8.5 COREY ============ -->
@@ -411,9 +462,12 @@ Mệnh đề 1: nếu T đúng và đơn điệu, chunk chọn được vừa an
 <p class="eyebrow"><a href="https://arxiv.org/abs/2604.10597">arXiv 2604.10597</a> · Ma et al.</p>
 <p><b>Vấn đề.</b> Với kernel selective scan của Mamba, chunk size, fusion boundary và tần suất launch "can change end-to-end latency by an order of magnitude" mà kết quả toán học không đổi. Chọn đúng chunk 512 thay vì 64 nhanh hơn 4.41× trên RTX 3070 và 3.90–4.04× trên accelerator datacenter. Tác giả thấy entropy activation khác nhau giữa các layer (2.27–3.61 nats) và muốn dùng nó để chọn chunk lúc chạy.</p>
 <p><b>Cơ chế.</b> Đo entropy Shannon của activation bằng histogram K bin, chuẩn hoá về [0,1], ánh xạ tuyến tính sang chunk rồi làm tròn về luỹ thừa 2.</p>
-<div class="formula">Ĥ(Z) = −Σ_k p_k log(p_k + ε);   H̃ = Ĥ / log K   (H_ref = log K, với K = 256 → 5.55 nats)<br>
-C = clip( 2^round(log₂(C_min + r·(C_max − C_min))), 32, 512 )<br>
-Scheduler chạy inline trong prefill, trên hidden state sau convolution</div>
+<div class="eq">
+  <div class="m">\(\displaystyle \hat H(Z) = -\sum_{k} p_k \log(p_k + \varepsilon)\)</div><div class="n">entropy Shannon trên histogram \(K\) bin</div>
+  <div class="m">\(\displaystyle \tilde H = \frac{\hat H}{\log K}\)</div><div class="n">\(H_{\text{ref}} = \log K\); với \(K = 256\) là 5.55 nats</div>
+  <div class="m">\(\displaystyle C = \mathrm{clip}\Big(2^{\,\mathrm{round}\left(\log_2\left(C_{\min} + r\,(C_{\max} - C_{\min})\right)\right)},\ 32,\ 512\Big)\)</div><div class="n">ánh xạ entropy sang chunk, làm tròn về luỹ thừa 2</div>
+  <div class="t">Scheduler chạy inline trong prefill, trên hidden state sau convolution.</div>
+</div>
 <p><b>Số liệu, và đây là phần đáng đọc nhất.</b> Ở mức kernel, chunk do entropy chọn khớp oracle. Nhưng end-to-end trên H800 (Bảng 5, prompt 976 token): static-512 = 891.5 ms; COREY full histogram = 970.3 ms (<b>chậm hơn 8.8%</b>); sampled = 932.7 ms (+4.6%); guarded = 903.0 ms (+1.3%); learned table = 897.6 ms (+0.7%). Kết luận của chính tác giả: "no entropy-guided variant beats the best static chunk". Trên 160 prompt tám regime, static-512 toàn cục chỉ chậm hơn per-regime oracle 0.14%. Trên LongBench, entropy tập trung 3.87–4.14 nats nên mọi prompt rơi vào cùng bucket chunk 256. Overhead đo entropy 2.3–8.3%, chi phí mỗi lần gọi scheduler 1.10 ms.</p>
 <p><b>Vì sao thất bại.</b> Không phải chọn sai chunk, mà là <b>decision cost</b>: dựng histogram, synchronization boundary để lấy feature runtime, dispatch overhead. Chi phí này phải trả cả khi kết quả trùng static-512. Và tín hiệu quá tập trung nên oracle cũng chẳng hơn static bao nhiêu.</p>
 <div class="why"><b>Rút ra cho HyPrefill</b>Ba bài học. Một, tín hiệu điều khiển của HyPrefill là <b>cấu trúc và SLO</b> (loại operator, vị trí t, deadline), không phải nội dung activation, nên không có chi phí đo lường runtime và không gặp vấn đề "tín hiệu quá tập trung". Hai, cost model tra bảng offline, không ước lượng gì lúc chạy. Ba, paper phải có bảng "decision quality vs decision cost" như Bảng 4–5 của COREY, chứng minh overhead của scheduler nhỏ hơn nhiều so với 8.8%. Reviewer biết COREY sẽ hỏi đúng câu này.</div>
@@ -422,32 +476,39 @@ Scheduler chạy inline trong prefill, trên hidden state sau convolution</div>
 <!-- ============ 8.6 GDN ============ -->
 <h3 id="p6">8.6 Gated DeltaNet (ICLR 2025) — vì sao GDN có state cố định</h3>
 <p class="eyebrow"><a href="https://arxiv.org/abs/2412.06464">arXiv 2412.06464</a> · Yang, Kautz, Hatamizadeh</p>
-<p><b>Bối cảnh, bốn bước.</b> Softmax attention tốn O(T²) và KV cache tăng theo T. Linear attention thay softmax bằng một state ma trận cập nhật kiểu RNN, chi phí mỗi bước hằng số, nhưng state cộng dồn vô hạn, không quên được. Gated linear attention (Mamba2, RetNet) thêm cổng quên α_t nhưng decay đồng nhất, không phân biệt cặp key-value nào cần giữ. Delta rule cập nhật có chọn lọc: gỡ thành phần chiếu lên key hiện tại rồi ghi giá trị mới vào đúng khe đó. Gated DeltaNet gộp cả hai.</p>
-<div class="formula">Linear attention:  S_t = S_{t−1} + k_t v_tᵀ,   o_t = S_tᵀ q_t<br>
-Mamba2:            S_t = α_t S_{t−1} + k_t v_tᵀ<br>
-DeltaNet:          S_t = S_{t−1}(I − β_t k_t k_tᵀ) + β_t k_t v_tᵀ<br>
-Gated DeltaNet:    S_t = S_{t−1} · α_t (I − β_t k_t k_tᵀ) + β_t k_t v_tᵀ<br>
-S_t ∈ ℝ^{d_k × d_v} mỗi head, kích thước không đổi theo t</div>
-<p>(I − β_t k_t k_tᵀ) là một phép Householder tổng quát. Để song song hoá delta rule trong một chunk C token, paper dùng <b>WY representation</b>: tích C phép Householder liên tiếp được biểu diễn bằng một cặp ma trận nhỏ.</p>
-<div class="formula">T = [I + strictLower(diag(β) K Kᵀ)]⁻¹ diag(β) ∈ ℝ^{C×C}<br>
-W = T K,   Ũ = T V   (pseudo-key và pseudo-value đã hấp thụ hiệu ứng ghi đè tuần tự trong chunk)<br>
-Intra-chunk: O[t] = Q̄[t] S[t]ᵀ + (Q[t] K[t]ᵀ ⊙ M)(Ũ[t] − W̄[t] S[t]ᵀ)   → O(C²d)<br>
-Inter-chunk: S[t+1] = S̄[t] + (Ũ[t] − W̄[t] S[t]ᵀ)ᵀ K̄[t]                  → O(C d²)</div>
+<p><b>Bối cảnh, bốn bước.</b> Softmax attention tốn O(T²) và KV cache tăng theo T. Linear attention thay softmax bằng một state ma trận cập nhật kiểu RNN, chi phí mỗi bước hằng số, nhưng state cộng dồn vô hạn, không quên được. Gated linear attention (Mamba2, RetNet) thêm cổng quên \(\alpha_t\) nhưng decay đồng nhất, không phân biệt cặp key-value nào cần giữ. Delta rule cập nhật có chọn lọc: gỡ thành phần chiếu lên key hiện tại rồi ghi giá trị mới vào đúng khe đó. Gated DeltaNet gộp cả hai.</p>
+<div class="eq">
+  <div class="m">\(\displaystyle S_t = S_{t-1} + k_t v_t^{\top}, \qquad o_t = S_t^{\top} q_t\)</div><div class="n">Linear attention</div>
+  <div class="m">\(\displaystyle S_t = \alpha_t\, S_{t-1} + k_t v_t^{\top}\)</div><div class="n">Mamba2</div>
+  <div class="m">\(\displaystyle S_t = S_{t-1}\big(I - \beta_t\, k_t k_t^{\top}\big) + \beta_t\, k_t v_t^{\top}\)</div><div class="n">DeltaNet</div>
+  <div class="m">\(\displaystyle S_t = S_{t-1}\,\alpha_t\big(I - \beta_t\, k_t k_t^{\top}\big) + \beta_t\, k_t v_t^{\top}\)</div><div class="n">Gated DeltaNet</div>
+  <div class="m">\(\displaystyle S_t \in \mathbb{R}^{d_k \times d_v}\)</div><div class="n">mỗi head; kích thước không đổi theo \(t\)</div>
+</div>
+<p>(I − \(\beta_t\) \(k_t\) \(k_t\)ᵀ) là một phép Householder tổng quát. Để song song hoá delta rule trong một chunk C token, paper dùng <b>WY representation</b>: tích C phép Householder liên tiếp được biểu diễn bằng một cặp ma trận nhỏ.</p>
+<div class="eq">
+  <div class="m">\(\displaystyle T = \big[I + \mathrm{strictLower}\big(\mathrm{diag}(\beta)\, K K^{\top}\big)\big]^{-1} \mathrm{diag}(\beta) \in \mathbb{R}^{C \times C}\)</div><div class="n">WY representation</div>
+  <div class="m">\(\displaystyle W = T K, \qquad \tilde U = T V\)</div><div class="n">pseudo-key và pseudo-value đã hấp thụ hiệu ứng ghi đè tuần tự trong chunk</div>
+  <div class="m">\(\displaystyle O_{[t]} = \bar Q_{[t]} S_{[t]}^{\top} + \big(Q_{[t]} K_{[t]}^{\top} \odot M\big)\big(\tilde U_{[t]} - \bar W_{[t]} S_{[t]}^{\top}\big)\)</div><div class="n">intra-chunk, \(O(C^2 d)\)</div>
+  <div class="m">\(\displaystyle S_{[t+1]} = \bar S_{[t]} + \big(\tilde U_{[t]} - \bar W_{[t]} S_{[t]}^{\top}\big)^{\top} \bar K_{[t]}\)</div><div class="n">inter-chunk, \(O(C d^2)\)</div>
+</div>
 <p><b>Số liệu.</b> 400M và 1.3B tham số, 100B token. WikiText perplexity GDN 16.42 so với Mamba2 16.56 và DeltaNet 17.71. Recall thực tế 2K: GDN 30.6%, hybrid GDN-H2 40.1%. S-NIAH-3: 27.6% so với Mamba2 4.6%. Paper không tự công bố C hay FLOP kernel mà dẫn chiếu Flash Linear Attention.</p>
-<div class="why"><b>Rút ra cho HyPrefill</b>Xử lý c token mới với state đầu S₀ từ t token trước tốn (c/C)·[γC²d + δCd²] + overhead, <b>không có số hạng chứa t</b>, vì đọc lịch sử là một matmul d×d chứ không phải quét t vector. Vậy cost_GDN(c) = a + b·⌈c/64⌉, affine theo c. Đo bằng <code>fla.ops.gated_delta_rule.chunk_gated_delta_rule</code> với <code>initial_state</code> khác None, giữ c cố định và đổi t để xác nhận latency bất biến. Kernel chunk C = 64 là hằng số phần cứng, không phải biến HyPrefill tối ưu; biến tối ưu là scheduler chunk c, và c = 65 tốn gần bằng c = 128 vì kernel pad chunk cuối.</div>
+<div class="why"><b>Rút ra cho HyPrefill</b>Xử lý c token mới với state đầu S₀ từ t token trước tốn (c/C)·[γC²d + δCd²] + overhead, <b>không có số hạng chứa t</b>, vì đọc lịch sử là một matmul d×d chứ không phải quét t vector. Vậy \(\mathrm{cost}_{\mathrm{GDN}}(c)\) = a + b·⌈c/64⌉, affine theo c. Đo bằng <code>fla.ops.gated_delta_rule.chunk_gated_delta_rule</code> với <code>initial_state</code> khác None, giữ c cố định và đổi t để xác nhận latency bất biến. Kernel chunk C = 64 là hằng số phần cứng, không phải biến HyPrefill tối ưu; biến tối ưu là scheduler chunk c, và c = 65 tốn gần bằng c = 128 vì kernel pad chunk cuối.</div>
 <details><summary>Tự kiểm tra: chunk theo c bất kỳ có làm sai kết quả không?</summary><p>Không. State liên chunk là tóm tắt chính xác của mọi token trước, công thức đóng không xấp xỉ. Chia chuỗi thành đoạn c bất kỳ và truyền state qua initial_state cho kết quả toán học giống xử lý nguyên khối, chỉ khác ở sai số dấu phẩy động.</p></details>
 
 <!-- ============ 8.7 GLA ============ -->
 <h3 id="p7">8.7 Gated Linear Attention (ICML 2024) — thuật toán chunkwise và kernel C = 64</h3>
 <p class="eyebrow"><a href="https://arxiv.org/abs/2312.06635">arXiv 2312.06635</a> · Yang, Wang, Shen, Panda, Kim</p>
 <p><b>Vấn đề.</b> Dạng hồi quy của linear attention có FLOP tuyến tính O(Ld²) nhưng mỗi bước chỉ là phép cộng ma trận nhỏ, arithmetic intensity thấp, không dùng được tensor core. Dạng song song dùng tốt tensor core nhưng quay lại O(L²d). Cần dạng vừa tuyến tính vừa dùng matmul: <b>chunkwise parallel form</b>.</p>
-<div class="formula">GLA: S_t = Diag(α_t) S_{t−1} + k_tᵀ v_t,   α_t ∈ ℝ^{1×d_k} là vector cổng theo kênh<br>
-Gate hạng thấp: α_t = σ(x_t W¹_α W²_α + b_α)^{1/τ},  W¹ ∈ ℝ^{d×16}, τ = 16<br>
-Chunkwise: S[i+1] = (γᵀ·1) ⊙ S[i] + (K[i+1] ⊙ Γ)ᵀ V[i+1];   O[i+1] = Q[i+1] S[i] + (Q[i+1] K[i+1]ᵀ ⊙ M) V[i+1]<br>
-Tổng chi phí O(L·C·d + L·d²), so với O(L²d) song song thuần và O(Ld²) hồi quy thuần</div>
+<div class="eq">
+  <div class="m">\(\displaystyle S_t = \mathrm{Diag}(\alpha_t)\, S_{t-1} + k_t^{\top} v_t, \qquad \alpha_t \in \mathbb{R}^{1 \times d_k}\)</div><div class="n">GLA: cổng theo từng kênh</div>
+  <div class="m">\(\displaystyle \alpha_t = \sigma\big(x_t W^{1}_{\alpha} W^{2}_{\alpha} + b_{\alpha}\big)^{1/\tau}, \qquad W^{1}_{\alpha} \in \mathbb{R}^{d \times 16},\ \tau = 16\)</div><div class="n">gate hạng thấp, thêm rất ít tham số</div>
+  <div class="m">\(\displaystyle S_{[i+1]} = \big(\gamma^{\top}\mathbf{1}\big) \odot S_{[i]} + \big(K_{[i+1]} \odot \Gamma\big)^{\top} V_{[i+1]}\)</div><div class="n">chunkwise: cập nhật state</div>
+  <div class="m">\(\displaystyle O_{[i+1]} = Q_{[i+1]} S_{[i]} + \big(Q_{[i+1]} K_{[i+1]}^{\top} \odot M\big) V_{[i+1]}\)</div><div class="n">chunkwise: output</div>
+  <div class="m">\(\displaystyle O(LCd + Ld^{2})\)</div><div class="n">tổng chi phí; so với \(O(L^2 d)\) song song thuần và \(O(L d^2)\) hồi quy thuần</div>
+</div>
 <p><b>FlashLinearAttention, hai pha.</b> Pha 1 tuần tự trong SRAM: tích luỹ S qua các chunk và ghi S[n] ra HBM. Pha 2 song song giữa các chunk: đọc Q, K, V và S[n], tính output. Đổi 10–20% bộ nhớ lấy song song hoá cấp chuỗi. C = 64 là bội của 16 để khớp tile tensor core. Có <i>secondary-level chunking</i> để ổn định số khi decay quá nhỏ.</p>
 <p><b>Số liệu.</b> 340M và 1.3B, SlimPajama. WikiText 1.3B: GLA 17.22, Transformer++ 16.85, RetNet 18.64. Kernel trên H100 nhanh hơn FlashAttention-2 trên dải 512–32K token, lợi thế rõ hơn khi độ dài trên 4096.</p>
-<div class="why"><b>Rút ra cho HyPrefill</b>Đây là nguồn gốc của C = 64 và thiết kế hai pha mà kernel GDN kế thừa, và là lý do vLLM ghim <code>FLA_CHUNK_SIZE=64</code>. Khi fit cost_GDN(c), tách ba phần: overhead cố định mỗi lần gọi, chi phí Pha 1 tuyến tính theo ⌈c/64⌉, chi phí Pha 2 tuyến tính theo số chunk nhưng song song được. Đo cả c lẻ vì kernel pad chunk cuối.</div>
+<div class="why"><b>Rút ra cho HyPrefill</b>Đây là nguồn gốc của C = 64 và thiết kế hai pha mà kernel GDN kế thừa, và là lý do vLLM ghim <code>FLA_CHUNK_SIZE=64</code>. Khi fit \(\mathrm{cost}_{\mathrm{GDN}}(c)\), tách ba phần: overhead cố định mỗi lần gọi, chi phí Pha 1 tuyến tính theo ⌈c/64⌉, chi phí Pha 2 tuyến tính theo số chunk nhưng song song được. Đo cả c lẻ vì kernel pad chunk cuối.</div>
 <details><summary>Tự kiểm tra: materialization đánh đổi gì?</summary><p>Đổi bộ nhớ, thêm 10–20% để lưu N state trung gian ra HBM, lấy khả năng chạy Pha 2 song song cho mọi chunk cùng lúc vì mỗi chunk đã có sẵn state khởi đầu.</p></details>
 
 <!-- ============ 8.8 Marconi ============ -->
@@ -455,9 +516,11 @@ Tổng chi phí O(L·C·d + L·d²), so với O(L²d) song song thuần và O(Ld
 <p class="eyebrow"><a href="https://arxiv.org/abs/2411.19379">arXiv 2411.19379</a> · Pan et al.</p>
 <p><b>Vấn đề.</b> Prefix caching kiểu radix tree dựa vào ba tính chất của KV cache: kích thước tuyến tính theo token, cắt lát được theo chiều sequence, và cache thêm gần như miễn phí. State SSM phá cả ba: "constant-sized regardless of how many tokens", "updated in place, so a sequence's states cannot be rolled back to represent its prefixes", và "orders of magnitude larger than the KVs of a single token". Muốn tái dùng một tiền tố phải checkpoint state đúng vị trí đó lúc prefill. Đo thực nghiệm với block 32: 25.0% block KV được tái dùng nhưng chỉ 0.4% state SSM, lệch 65.3×. Model 7B, chuỗi 10K token tốn 17.4 GB để lưu mọi state, gấp 3.3× Transformer cùng cỡ.</p>
 <p><b>Cơ chế.</b> Một radix tree chung cho KV và state, cộng hai chính sách. <i>Admission bằng speculative insertion</i>: trước khi prefill, thử chèn input vào cây để xem có tạo điểm phân nhánh không; chỉ khi có mới checkpoint state tại đó. <i>Eviction FLOP-aware</i> thay LRU thuần.</p>
-<div class="formula">flop_efficiency(n) = FLOP tiết kiệm được qua các layer tại node n / bộ nhớ state tại n<br>
-S(n) = recency(n) + α · flop_efficiency(n),  cả hai chuẩn hoá về (0,1)<br>
-α tự hiệu chỉnh: bắt đầu 0 (LRU), sau giai đoạn bootstrap chạy grid search bất đồng bộ trên request đã thấy</div>
+<div class="eq">
+  <div class="m">\(\displaystyle \mathrm{eff}(n) = \frac{\mathrm{FLOP}_{\text{saved}}(n)}{\mathrm{Mem}_{\text{state}}(n)}\)</div><div class="n">FLOP tiết kiệm được qua các layer nếu hit tại node \(n\), chia cho bộ nhớ state mà \(n\) chiếm</div>
+  <div class="m">\(\displaystyle S(n) = \mathrm{recency}(n) + \alpha\cdot \mathrm{eff}(n)\)</div><div class="n">cả hai chuẩn hoá về \((0, 1)\)</div>
+  <div class="t">\(\alpha\) tự hiệu chỉnh: bắt đầu bằng 0 (thuần LRU), sau giai đoạn bootstrap chạy grid search bất đồng bộ trên các request đã thấy.</div>
+</div>
 <p><b>Số liệu.</b> Hybrid 7B và Jamba-1.5-Mini trên 4×A100-40GB; trace LMSys, ShareGPT, SWE-Bench. Hit rate hơn vLLM+ 4.5×, 7.3×, 34.4×; P95 TTFT giảm 36.1%, 71.1%, 46.8%. So với SGLang+ (LRU thuần), hit rate hơn 19.0–219.7%. Phân tích theo độ dài trên SWE-Bench: chuỗi dưới 7K thua tới 3.0%, chuỗi trên 7K thắng tới 25.5%, đúng như thiết kế đánh đổi. Ablation theo tỉ lệ Attention:SSM, state dimension, kích thước cache, tốc độ đến.</p>
 <div class="why"><b>Rút ra cho HyPrefill</b>Không phải cơ chế mà là <b>mạch viết</b>: (1) định lượng một pathology của operator mới bằng số, (2) suy ra vì sao chính sách "một cỡ cho tất cả" thất bại, (3) thiết kế cơ chế tách theo loại operator, (4) cài trên engine thật, (5) so với baseline mạnh trên trace thực, luôn phân tích theo bucket vì trung bình che hiệu ứng hai chiều. HyPrefill làm đúng năm bước này, thay "cache mọi thứ giống nhau" bằng "chunk mọi layer giống nhau", và mượn nguyên khung ablation: tỉ lệ attention:GDN:MoE, chunk mỗi group, áp lực tải.</div>
 <details><summary>Tự kiểm tra: vì sao LRU thuần không đủ cho cache hybrid?</summary><p>Với KV, kích thước tỉ lệ với compute tiết kiệm được nên "mới nhất" là proxy tốt. State SSM cố định kích thước bất kể tiết kiệm bao nhiêu compute, nên cần cộng thêm FLOP tiết kiệm trên mỗi byte.</p></details>
@@ -466,17 +529,21 @@ S(n) = recency(n) + α · flop_efficiency(n),  cả hai chuẩn hoá về (0,1)<
 <h3 id="p9">8.9 DeepSeek-V3.2 và DSA — sparse attention có indexer</h3>
 <p class="eyebrow"><a href="https://arxiv.org/abs/2512.02556">arXiv 2512.02556</a> · DeepSeek-AI</p>
 <p><b>Vấn đề.</b> Attention dense O(L²) quá đắt ở 128K. Muốn chỉ attend tới tập con token quan trọng mà không tính dense trước để biết chọn ai. DSA dùng một <b>lightning indexer</b> rẻ, ít head, FP8, ReLU thay softmax, chấm điểm mọi cặp rồi chọn top-k.</p>
-<div class="formula">I_{t,s} = Σ_{j=1}^{H^I} w^I_{t,j} · ReLU(q^I_{t,j} · k^I_s)<br>
-u_t = Attn(h_t, { c_s : I_{t,s} ∈ Top-k(I_{t,:}) }),  k = 2048<br>
-Attention chính: O(L²) → O(L·k).  Indexer: vẫn O(L²), paper nói rõ "the lightning indexer still has a complexity of O(L²)"</div>
+<div class="eq">
+  <div class="m">\(\displaystyle I_{t,s} = \sum_{j=1}^{H^{I}} w^{I}_{t,j}\, \mathrm{ReLU}\big(q^{I}_{t,j} \cdot k^{I}_{s}\big)\)</div><div class="n">điểm của lightning indexer</div>
+  <div class="m">\(\displaystyle u_t = \mathrm{Attn}\Big(h_t,\ \big\{\, c_s : I_{t,s} \in \mathrm{Top}\text{-}k(I_{t,:}) \,\big\}\Big), \qquad k = 2048\)</div><div class="n">attention thật chỉ trên top-\(k\)</div>
+  <div class="m">\(\displaystyle O(L^{2}) \;\to\; O(Lk)\)</div><div class="n">cho attention chính; paper nói rõ indexer vẫn \(O(L^2)\): "the lightning indexer still has a complexity of O(L²)"</div>
+</div>
 <p><b>Suy ra cho chunked prefill.</b> Chunk c token mới tại vị trí t:</p>
-<div class="formula">cost_indexer(c, t) = O(c · t · H^I · d^I)   tăng theo t, hệ số nhỏ<br>
-cost_sparse(c) = O(c · k · d)               không phụ thuộc t<br>
-mem_indexer(c, t) = c · t phần tử mỗi layer, thường FP32, trước khi rút còn top-k</div>
+<div class="eq">
+  <div class="m">\(\displaystyle \mathrm{cost}_{\text{indexer}}(c,t) = O\big(c\, t\, H^{I} d^{I}\big)\)</div><div class="n">tăng theo \(t\), hệ số nhỏ</div>
+  <div class="m">\(\displaystyle \mathrm{cost}_{\text{sparse}}(c) = O(c\, k\, d)\)</div><div class="n">không phụ thuộc \(t\)</div>
+  <div class="m">\(\displaystyle \mathrm{mem}_{\text{indexer}}(c,t) = c \cdot t\)</div><div class="n">phần tử mỗi layer, thường FP32, trước khi rút còn top-\(k\)</div>
+</div>
 <p><b>Huấn luyện indexer.</b> Giai đoạn dense warm-up đóng băng model, chỉ học indexer bằng KL giữa phân phối attention thật và softmax của điểm indexer, 1000 bước, 2.1B token. Giai đoạn sparse tiếp tục trên tập token đã chọn, tách indexer khỏi đồ thị tính toán chính, 15000 bước, 943.7B token.</p>
 <p><b>Số liệu.</b> Chất lượng ngang V3.1-Terminus, Elo ChatbotArena tương đương, AA-LCR hơn 4 điểm ở reasoning. Chi phí theo vị trí token nằm trong Hình 3, không trích số được từ văn bản. H^I và d^I không công bố tường minh trong văn bản, cần lấy từ config.json. Ở context ngắn họ dùng masked MHA để giả lập DSA, tức sparse chỉ có lợi từ context dài.</p>
 <p><b>Bằng chứng từ engine.</b> vLLM issue #56457 về QSA/DSA indexer: "chunk i of a long prompt now allocates 3200 × (800·i) × 4B = 10.24 MB × i", buffer tăng tuyến tính theo chỉ số chunk, allocator không tái dùng được block cũ, tích luỹ ~14 GB mỗi rank và OOM ở 254K token. Cách vá là chặn cứng bằng <code>VLLM_SPARSE_INDEXER_MAX_LOGITS_MB</code>.</p>
-<div class="why"><b>Rút ra cho HyPrefill</b>Một layer sparse attention chứa hai sub-block với hình dạng chi phí khác nhau: indexer giống full attention (tăng theo t), attention top-k giống GDN (phẳng theo t). Và ràng buộc của indexer là <b>bộ nhớ theo c·t</b>, đúng loại ràng buộc thứ hai trong bảng ở mục 3. Chunk hợp lý cho nhóm indexer là hàm giảm theo t để giữ c·t dưới trần bộ nhớ. Đây là bằng chứng rằng "min over operators" đổi loại chứ không biến mất khi attention thưa.</div>
+<div class="why"><b>Rút ra cho HyPrefill</b>Một layer sparse attention chứa hai sub-block với hình dạng chi phí khác nhau: indexer giống full attention (tăng theo t), attention top-k giống GDN (phẳng theo t). Và ràng buộc của indexer là <b>bộ nhớ theo \(c\cdot t\)</b>, đúng loại ràng buộc thứ hai trong bảng ở mục 3. Chunk hợp lý cho nhóm indexer là hàm giảm theo t để giữ \(c\cdot t\) dưới trần bộ nhớ. Đây là bằng chứng rằng "min over operators" đổi loại chứ không biến mất khi attention thưa.</div>
 <details><summary>Tự kiểm tra: vì sao DSA giảm attention xuống O(Lk) mà indexer vẫn O(L²)?</summary><p>Để biết top-k phải chấm điểm mọi cặp (t, s), vẫn là toàn cặp O(L²), chỉ rẻ hơn nhờ ít head, chiều nhỏ, FP8, ReLU. Sau đó attention thật chỉ trên k entry mỗi query.</p></details>
 
 <h3>Bảng tổng kết chín bài</h3>
@@ -484,13 +551,286 @@ mem_indexer(c, t) = c · t phần tử mỗi layer, thường FP32, trước khi
 <tr><th>Bài</th><th>Đơn vị chunk</th><th>Tín hiệu điều khiển</th><th>Kiến trúc</th><th>HyPrefill lấy gì</th></tr>
 <tr><td>Sarathi-Serve</td><td>Token, một budget toàn cục</td><td>Profiling offline theo TBT</td><td>Dense</td><td>Thứ tự batch, metric, ablation</td></tr>
 <tr><td>DistServe</td><td>Tách pha vật lý</td><td>Simulator + search</td><td>Dense</td><td>Goodput, khuôn simulator, câu trả lời "sao không PD"</td></tr>
-<tr><td>Layered Prefill</td><td>Nhóm layer</td><td>N_lg(L) tĩnh</td><td>MoE + full attention</td><td>Baseline neo, lập luận sparsity erosion</td></tr>
-<tr><td>SLOWeave</td><td>Token, một chunk mỗi iteration</td><td>Deadline B_t, T đơn điệu</td><td>Dense</td><td>Khung deadline + binary search, mở rộng thành vector</td></tr>
+<tr><td>Layered Prefill</td><td>Nhóm layer</td><td>\(N_{\text{lg}}(L)\) tĩnh</td><td>MoE + full attention</td><td>Baseline neo, lập luận sparsity erosion</td></tr>
+<tr><td>SLOWeave</td><td>Token, một chunk mỗi iteration</td><td>Deadline \(B_t\), T đơn điệu</td><td>Dense</td><td>Khung deadline + binary search, mở rộng thành vector</td></tr>
 <tr><td>COREY</td><td>Kernel scan</td><td>Entropy activation</td><td>Mamba-1</td><td>Bài học decision cost; bảng overhead bắt buộc</td></tr>
-<tr><td>GDN, GLA</td><td>Kernel chunk C = 64</td><td>—</td><td>Linear attention</td><td>cost_GDN(c) affine, không có t</td></tr>
+<tr><td>GDN, GLA</td><td>Kernel chunk C = 64</td><td>—</td><td>Linear attention</td><td>\(\mathrm{cost}_{\mathrm{GDN}}(c)\) affine, không có t</td></tr>
 <tr><td>Marconi</td><td>—</td><td>FLOP-aware</td><td>Attention + Mamba</td><td>Mạch viết paper, khung ablation</td></tr>
-<tr><td>DSA</td><td>—</td><td>—</td><td>Sparse attention</td><td>Ràng buộc bộ nhớ c·t của indexer</td></tr>
+<tr><td>DSA</td><td>—</td><td>—</td><td>Sparse attention</td><td>Ràng buộc bộ nhớ \(c\cdot t\) của indexer</td></tr>
 </table></div>
+
+
+<h2 id="s9">9. Giải pháp HyPrefill — đọc proposal từ đầu đến cuối</h2>
+<p>Phần này giải thích proposal trong <code>PROPOSAL.md</code>: bài toán, cơ chế, vì sao đúng, áp dụng ở đâu, so với ai, và cái gì có thể giết nó. Khi viết phần này, tôi chạy một mô phỏng dòng token qua đúng cấu trúc layer của Qwen3-Next để kiểm từng khẳng định. Mô phỏng cho thấy proposal <b>gán sai nguồn gốc của gain</b>. Mục 9.2 đến 9.6 giải thích bức tranh đã sửa; bạn nên đọc kỹ phần đó trước khi bắt đầu tuần 1, vì nó thay đổi cổng G1.</p>
+
+<div class="why"><b>Đọc mục này như giả thuyết, chưa phải kết luận</b>
+<p style="margin:.3rem 0">Mô phỏng ở mục 9.5 là mô hình đồ chơi: hằng số minh hoạ, chi phí giả định tuyến tính, bỏ qua chi phí copy buffer và đồng bộ, coi decode là hằng số, và "Layered" là pipeline lý tưởng chứ không phải thuật toán thật. <b>Đừng tin độ lớn của bất kỳ con số nào ở đây.</b></p>
+<p style="margin:.3rem 0">Phần đáng tin hơn là lập luận không phụ thuộc hằng số: budget TBT là ràng buộc mỗi iteration nên pipeline gỡ được; buffer indexer là ràng buộc mỗi lần gọi nên pipeline không gỡ được. Và Layered Prefill tồn tại, nên đóng góp riêng của HyPrefill phải được đo so với nó.</p>
+<p style="margin:.3rem 0">Hệ quả thực tế duy nhất: tuần 2 đo thêm hai thứ (tách gain pipeline khỏi gain chunk theo operator; kiểm kernel indexer), tốn thêm khoảng một đến hai ngày. Số đo tuần 2 mới quyết định. Ngày 24/09 đã cập nhật cổng G1 (tách G1a, G1b, G1c) trong <code>PROPOSAL.md</code>, <code>README.md</code> và <code>weeks/WEEK_02.md</code>; claim trung tâm và abstract chỉ viết lại sau khi có số đo.</p></div>
+
+<!-- ======================= 9.1 ======================= -->
+<h3 id="q1">9.1 Bài toán trong một đoạn</h3>
+<p>Chunked prefill kiểu Sarathi-Serve cắt prompt thành các chunk c token. Mỗi iteration, <b>một chunk đi qua toàn bộ chiều sâu của model</b> (96 sublayer ở Qwen3-Next) cùng với batch decode, và tổng chi phí phải nằm trong budget \(P = B - D\) để không làm TBT vượt SLO. Model hybrid có ba loại operator với ba loại ràng buộc khác nhau (bảng cuối mục 3): attention bị ràng buộc <b>thời gian</b> tăng theo context t, indexer của sparse attention bị ràng buộc <b>bộ nhớ</b> theo tích \(c\cdot t\), còn GDN và MoE bị ràng buộc <b>khấu hao</b> vì có chi phí cố định mỗi lần gọi. Một chunk chung cho mọi operator thì bằng <code>min</code> của tất cả, nên ở context dài GDN và MoE bị kéo xuống chạy chunk nhỏ, trả chi phí cố định nhiều lần.</p>
+<p>Đến đây proposal đúng. Chỗ cần sửa là <b>cách gỡ cái min đó</b>.</p>
+
+<!-- ======================= 9.2 ======================= -->
+<h3 id="q2">9.2 Hai cơ chế, không phải một</h3>
+<p>Có hai cách độc lập để GDN và MoE thoát khỏi chunk nhỏ. Proposal gộp chúng làm một và gán toàn bộ gain cho cách thứ hai. Mô phỏng tách được chúng.</p>
+<div class="tbl"><table>
+<tr><th>Cơ chế</th><th>Làm gì</th><th>Của ai</th></tr>
+<tr><td><b>A. Pipeline theo chiều sâu</b></td><td>Cho phép một batch prefill trải qua <i>nhiều iteration</i> trên đường đi xuống chồng layer. Mỗi iteration chỉ chạy một đoạn của chiều sâu, nên batch được phép lớn hơn.</td><td>Ý tưởng cốt lõi của <b>Layered Prefill</b> (MLSys 2026), đã có cho MoE + full attention</td></tr>
+<tr><td><b>B. Chunk theo operator</b></td><td>Attention nhận chunk c, mọi operator khác nhận \(k\cdot c\). Cần buffer ở chỗ đổi nhịp.</td><td>Ý tưởng riêng của HyPrefill</td></tr>
+</table></div>
+
+<figure>
+<svg viewBox="0 0 660 250" role="img" aria-label="Sarathi so với pipeline theo chiều sâu">
+  <g font-size="12" fill="currentColor" font-weight="600">
+    <text x="60" y="18">Sarathi: mỗi chunk đi hết chiều sâu trong 1 iteration</text>
+    <text x="380" y="18">Pipeline theo chiều sâu: batch lớn, trải nhiều iteration</text>
+  </g>
+  <g font-size="10" fill="currentColor">
+    <text x="18" y="46">G</text><text x="18" y="66">M</text><text x="18" y="86">G</text><text x="18" y="106">M</text>
+    <text x="18" y="126">G</text><text x="18" y="146">M</text><text x="18" y="166">A</text><text x="18" y="186">M</text>
+    <text x="338" y="46">G</text><text x="338" y="66">M</text><text x="338" y="86">G</text><text x="338" y="106">M</text>
+    <text x="338" y="126">G</text><text x="338" y="146">M</text><text x="338" y="166">A</text><text x="338" y="186">M</text>
+  </g>
+  <!-- Sarathi: 4 columns, every row active -->
+  <g stroke="currentColor" stroke-opacity=".15" fill="none">
+    <rect x="34" y="32" width="264" height="160"/><rect x="354" y="32" width="264" height="160"/>
+  </g>
+  <g>
+    <!-- col 1..4 at x=40,100,160,220 ; rows y=34+20*i -->
+    <g fill="var(--gdn)" opacity=".8">
+      <rect x="40" y="34" width="52" height="16"/><rect x="40" y="74" width="52" height="16"/><rect x="40" y="114" width="52" height="16"/>
+      <rect x="100" y="34" width="52" height="16"/><rect x="100" y="74" width="52" height="16"/><rect x="100" y="114" width="52" height="16"/>
+      <rect x="160" y="34" width="52" height="16"/><rect x="160" y="74" width="52" height="16"/><rect x="160" y="114" width="52" height="16"/>
+      <rect x="220" y="34" width="52" height="16"/><rect x="220" y="74" width="52" height="16"/><rect x="220" y="114" width="52" height="16"/>
+    </g>
+    <g fill="var(--moe)" opacity=".8">
+      <rect x="40" y="54" width="52" height="16"/><rect x="40" y="94" width="52" height="16"/><rect x="40" y="134" width="52" height="16"/><rect x="40" y="174" width="52" height="16"/>
+      <rect x="100" y="54" width="52" height="16"/><rect x="100" y="94" width="52" height="16"/><rect x="100" y="134" width="52" height="16"/><rect x="100" y="174" width="52" height="16"/>
+      <rect x="160" y="54" width="52" height="16"/><rect x="160" y="94" width="52" height="16"/><rect x="160" y="134" width="52" height="16"/><rect x="160" y="174" width="52" height="16"/>
+      <rect x="220" y="54" width="52" height="16"/><rect x="220" y="94" width="52" height="16"/><rect x="220" y="134" width="52" height="16"/><rect x="220" y="174" width="52" height="16"/>
+    </g>
+    <g fill="var(--fa)" opacity=".85">
+      <rect x="40" y="154" width="52" height="16"/><rect x="100" y="154" width="52" height="16"/><rect x="160" y="154" width="52" height="16"/><rect x="220" y="154" width="52" height="16"/>
+    </g>
+  </g>
+  <g font-size="11" fill="#fff" font-weight="600" text-anchor="middle">
+    <text x="66" y="126">c₁</text><text x="126" y="126">c₂</text><text x="186" y="126">c₃</text><text x="246" y="126">c₄</text>
+  </g>
+  <!-- Pipelined: batch 1 rows 0-3 iter1, rows 4-7 iter2 ; batch 2 rows 0-3 iter2, rows 4-7 iter3 -->
+  <g>
+    <g fill="var(--gdn)" opacity=".8">
+      <rect x="360" y="34" width="72" height="16"/><rect x="360" y="74" width="72" height="16"/>
+      <rect x="440" y="114" width="72" height="16"/>
+      <rect x="440" y="34" width="72" height="16"/><rect x="440" y="74" width="72" height="16"/>
+      <rect x="520" y="114" width="72" height="16"/>
+    </g>
+    <g fill="var(--moe)" opacity=".8">
+      <rect x="360" y="54" width="72" height="16"/><rect x="360" y="94" width="72" height="16"/>
+      <rect x="440" y="134" width="72" height="16"/><rect x="440" y="174" width="72" height="16"/>
+      <rect x="440" y="54" width="72" height="16"/><rect x="440" y="94" width="72" height="16"/>
+      <rect x="520" y="134" width="72" height="16"/><rect x="520" y="174" width="72" height="16"/>
+    </g>
+    <g fill="var(--fa)" opacity=".85">
+      <rect x="440" y="154" width="72" height="16"/><rect x="520" y="154" width="72" height="16"/>
+    </g>
+  </g>
+  <g font-size="11" fill="#fff" font-weight="600" text-anchor="middle">
+    <text x="396" y="86">b₁</text><text x="476" y="146">b₁</text><text x="476" y="86">b₂</text><text x="556" y="146">b₂</text>
+  </g>
+  <g font-size="10" fill="currentColor" text-anchor="middle">
+    <text x="66" y="210">iter 1</text><text x="126" y="210">iter 2</text><text x="186" y="210">iter 3</text><text x="246" y="210">iter 4</text>
+    <text x="396" y="210">iter 1</text><text x="476" y="210">iter 2</text><text x="556" y="210">iter 3</text>
+  </g>
+  <g font-size="11" fill="currentColor">
+    <text x="60" y="236">4 chunk nhỏ · mỗi sublayer gọi 4 lần</text>
+    <text x="380" y="236">2 batch gấp đôi · mỗi sublayer gọi 2 lần</text>
+  </g>
+</svg>
+<figcaption>Một block của Qwen3-Next (G = GDN, M = MoE, A = attention). Trái: Sarathi, mỗi chunk đi hết 8 sublayer trong một iteration. Phải: pipeline, mỗi batch gấp đôi nhưng chỉ đi nửa chiều sâu mỗi iteration; ở iteration 2 có hai batch cùng bay ở hai độ sâu. Cùng số token, ít lần gọi hơn, nên ít chi phí cố định hơn.</figcaption>
+</figure>
+
+<!-- ======================= 9.3 ======================= -->
+<h3 id="q3">9.3 Vì sao pipeline tự giải được ràng buộc thời gian của attention</h3>
+<p>Đây là điểm proposal bỏ sót. Tiền đề của HyPrefill là: "ở context dài, attention phải chạy chunk nhỏ, nên kéo cả model xuống". Nhưng hãy nhìn vì sao attention phải nhỏ.</p>
+<div class="eq">
+  <div class="t"><b>Sarathi:</b> mỗi iteration chạy <b>cả 12</b> attention layer trên chunk \(c\).</div>
+  <div class="m">\(\displaystyle 12\,\alpha_l\, c\, t \le P_{\text{attn}} \;\;\Longrightarrow\;\; c \approx \frac{P_{\text{attn}}}{12\,\alpha_l\, t}\)</div><div class="n">chữ 12 là thủ phạm</div>
+  <div class="t"><b>Pipeline:</b> mỗi iteration chỉ chạy <b>1–2</b> attention layer; các layer khác đang xử lý batch khác.</div>
+  <div class="m">\(\displaystyle \alpha_l\, c\, t \le P_{\text{attn}} \;\;\Longrightarrow\;\; c \approx \frac{P_{\text{attn}}}{\alpha_l\, t}\)</div><div class="n">chunk lớn hơn khoảng 6–12 lần</div>
+</div>
+<p>Budget TBT là ràng buộc <b>mỗi iteration</b>. Sarathi nhồi cả 12 attention layer vào một iteration, nên mỗi layer chỉ được một phần mười hai budget. Pipeline trải 12 layer ra nhiều iteration, nên mỗi layer tự lấy được chunk lớn. <b>Một khi đã pipeline, attention không còn cần chunk nhỏ hơn các operator khác.</b> Đó là lý do trong chế độ bị giới hạn bởi thời gian, cơ chế B gần như không thêm gì.</p>
+
+<!-- ======================= 9.4 ======================= -->
+<h3 id="q4">9.4 Vì sao pipeline không giải được ràng buộc bộ nhớ, và đó là chỗ HyPrefill cần thiết</h3>
+<p>Buffer logits của indexer sparse attention có kích thước \(c\cdot t\cdot H_{\text{idx}}\cdot 4\) byte <b>cho mỗi lần gọi</b>. Đó là ràng buộc <b>mỗi lần gọi</b>, không phải mỗi iteration. Trải layer ra nhiều iteration không làm lần gọi nào nhỏ đi. Vậy attention vẫn bị kẹp ở \(c_{\text{mem}}\) bất kể có pipeline hay không.</p>
+<p>Nếu dùng chung một chunk cho mọi operator (pipeline, k = 1), GDN và MoE cũng bị kéo xuống \(c_{\text{mem}}\), và vì attention phải gọi nhiều lần nhỏ thì chúng cũng phải gọi nhiều lần nhỏ theo, mỗi lần trả chi phí cố định. Chunk theo operator gỡ đúng chỗ này.</p>
+<figure>
+<svg viewBox="0 0 640 170" role="img" aria-label="Chunk chung so với chunk theo operator khi attention bị giới hạn bộ nhớ">
+  <g font-size="12" fill="currentColor" font-weight="600">
+    <text x="10" y="18">Chunk chung, attention bị kẹp ở c_mem</text>
+    <text x="330" y="18">Chunk theo operator (k = 4)</text>
+  </g>
+  <g font-size="11" fill="currentColor">
+    <text x="10" y="50">GDN</text><text x="10" y="84">Attn</text><text x="10" y="118">MoE</text>
+    <text x="330" y="50">GDN</text><text x="330" y="84">Attn</text><text x="330" y="118">MoE</text>
+  </g>
+  <g fill="var(--gdn)" opacity=".85">
+    <rect x="50" y="36" width="56" height="20" rx="2"/><rect x="112" y="36" width="56" height="20" rx="2"/><rect x="174" y="36" width="56" height="20" rx="2"/><rect x="236" y="36" width="56" height="20" rx="2"/>
+    <rect x="370" y="36" width="242" height="20" rx="2"/>
+  </g>
+  <g fill="var(--fa)" opacity=".85">
+    <rect x="50" y="70" width="56" height="20" rx="2"/><rect x="112" y="70" width="56" height="20" rx="2"/><rect x="174" y="70" width="56" height="20" rx="2"/><rect x="236" y="70" width="56" height="20" rx="2"/>
+    <rect x="370" y="70" width="56" height="20" rx="2"/><rect x="432" y="70" width="56" height="20" rx="2"/><rect x="494" y="70" width="56" height="20" rx="2"/><rect x="556" y="70" width="56" height="20" rx="2"/>
+  </g>
+  <g fill="var(--moe)" opacity=".85">
+    <rect x="50" y="104" width="56" height="20" rx="2"/><rect x="112" y="104" width="56" height="20" rx="2"/><rect x="174" y="104" width="56" height="20" rx="2"/><rect x="236" y="104" width="56" height="20" rx="2"/>
+    <rect x="370" y="104" width="242" height="20" rx="2"/>
+  </g>
+  <g font-size="10" fill="#fff" font-weight="600" text-anchor="middle">
+    <text x="78" y="50">c</text><text x="140" y="50">c</text><text x="202" y="50">c</text><text x="264" y="50">c</text>
+    <text x="78" y="84">c</text><text x="140" y="84">c</text><text x="202" y="84">c</text><text x="264" y="84">c</text>
+    <text x="78" y="118">c</text><text x="140" y="118">c</text><text x="202" y="118">c</text><text x="264" y="118">c</text>
+    <text x="491" y="50">4c — một lần gọi</text>
+    <text x="398" y="84">c</text><text x="460" y="84">c</text><text x="522" y="84">c</text><text x="584" y="84">c</text>
+    <text x="491" y="118">4c — một lần gọi</text>
+  </g>
+  <g font-size="11" fill="currentColor">
+    <text x="10" y="152">12 lần gọi · GDN và MoE trả chi phí cố định 4 lần</text>
+    <text x="330" y="152">6 lần gọi · GDN và MoE trả chi phí cố định 1 lần</text>
+  </g>
+</svg>
+<figcaption>Attention bị kẹp ở \(c_{\text{mem}}\) theo từng lần gọi, nên luôn phải gọi 4 lần. Với chunk chung, GDN và MoE bị kéo theo, cũng gọi 4 lần. Với chunk theo operator, chúng gom 4c rồi gọi một lần: tiết kiệm đúng (k − 1) lần launch GDN và (k − 1) lần đọc trọng số expert.</figcaption>
+</figure>
+
+<!-- ======================= 9.5 ======================= -->
+<h3 id="q5">9.5 Kết quả mô phỏng</h3>
+<p>Mô phỏng dòng token qua 96 sublayer của Qwen3-Next (12 × [G, M, G, M, G, M, A, M]), budget P = 40 ms, hằng số minh hoạ giống bộ tính ở mục 5. Mỗi sublayer được phép gọi nhiều lần trong một iteration. Đơn vị là <b>số iteration để prefill xong Δ token mới</b>, ít hơn là tốt hơn. So ba chính sách: <b>Sarathi</b> (chunk đi hết chiều sâu mỗi iteration), <b>Layered</b> (pipeline, k = 1), <b>HyPrefill</b> (pipeline, k ≥ 2). Mã nguồn ở <code>sim/hyprefill_sim.js</code>, chạy lại với số đo thật ở tuần 2.</p>
+
+<p><b>Chế độ bị giới hạn bởi thời gian</b> (full attention, Qwen3-Next):</p>
+<div class="tbl"><table>
+<tr><th>Context t</th><th>Δ mới</th><th>Sarathi</th><th>Layered / Sarathi</th><th>HyPrefill / Layered</th><th>HyPrefill / Sarathi</th></tr>
+<tr><td>64K</td><td>32K</td><td>35</td><td>1.46×</td><td>1.04×</td><td>1.52×</td></tr>
+<tr><td>128K</td><td>8K</td><td>15</td><td>1.36×</td><td>1.10×</td><td>1.50×</td></tr>
+<tr><td>128K</td><td>32K</td><td>57</td><td>1.50×</td><td>1.03×</td><td>1.54×</td></tr>
+<tr><td>128K</td><td>128K</td><td>228</td><td>1.51×</td><td>1.03×</td><td>1.56×</td></tr>
+<tr><td>256K</td><td>32K</td><td>103</td><td>1.54×</td><td>1.03×</td><td>1.58×</td></tr>
+<tr><td>256K</td><td>128K</td><td>410</td><td>1.55×</td><td>1.03×</td><td>1.60×</td></tr>
+</table></div>
+
+<p><b>Chế độ bị giới hạn bởi bộ nhớ</b> (sparse attention, indexer 32 GB):</p>
+<div class="tbl"><table>
+<tr><th>Context t</th><th>Δ mới</th><th>\(c_{\text{mem}}\)</th><th>Sarathi</th><th>Layered / Sarathi</th><th>HyPrefill / Layered</th><th>HyPrefill / Sarathi</th></tr>
+<tr><td>64K</td><td>32K</td><td>1856</td><td>18</td><td>1.13×</td><td>1.60×</td><td>1.80×</td></tr>
+<tr><td>128K</td><td>8K</td><td>896</td><td>10</td><td>1.67×</td><td>2.00×</td><td>3.33×</td></tr>
+<tr><td>128K</td><td>32K</td><td>896</td><td>37</td><td>1.61×</td><td>1.92×</td><td>3.08×</td></tr>
+<tr><td>128K</td><td>128K</td><td>896</td><td>147</td><td>1.63×</td><td>1.96×</td><td>3.20×</td></tr>
+<tr><td>256K</td><td>32K</td><td>448</td><td>74</td><td>2.00×</td><td>2.47×</td><td>4.93×</td></tr>
+<tr><td>256K</td><td>128K</td><td>448</td><td>293</td><td>1.99×</td><td>2.58×</td><td>5.14×</td></tr>
+</table></div>
+<p>Với ngân sách indexer chặt hơn là 8 GB, cột HyPrefill / Layered lên tới 3.0–7.7×, nhưng đó là góc cực đoan, đừng dùng làm số headline.</p>
+
+<div class="why"><b>Đọc hai bảng này thế nào</b>
+<p style="margin:.3rem 0">Cột giữa là <b>đóng góp riêng của HyPrefill</b>, sau khi đã trừ phần của Layered Prefill. Ở chế độ thời gian nó chỉ 1.03–1.10×. Ở chế độ bộ nhớ nó 1.60–2.58×. Nếu bài chỉ so với Sarathi thì sẽ khai 1.5× cho HyPrefill trong khi 1.4× trong số đó là của Layered Prefill, và reviewer đọc Layered Prefill sẽ bắt ngay.</p>
+<p style="margin:.3rem 0">Hằng số là minh hoạ. Cấu trúc của kết luận (pipeline giải thời gian, không giải bộ nhớ) là lập luận logic nên bền; độ lớn của từng con số thì phải chờ số đo tuần 1–2.</p></div>
+
+<!-- ======================= 9.6 ======================= -->
+<h3 id="q6">9.6 Điều này thay đổi gì trong proposal</h3>
+<ol>
+<li><b>Layered Prefill là baseline chính, không phải Sarathi.</b> Mọi con số headline phải là HyPrefill / Layered, và Layered phải được cài cho hybrid (Layered gốc không có GDN) để so công bằng.</li>
+<li><b>Claim trung tâm viết lại.</b> Không còn là "các operator cần chunk khác nhau" một cách chung chung, mà là: <i>trong chế độ bị giới hạn bởi thời gian, pipeline theo chiều sâu mang phần lớn gain; trong chế độ bị giới hạn bởi bộ nhớ, pipeline không đủ và chunk theo operator trở thành cơ chế chính.</i></li>
+<li><b>Bản đồ regime (Hình 3) giờ có nội dung thật.</b> Hai cơ chế, mỗi cái thống trị một vùng. Đây là hình mạnh hơn nhiều so với "gain tăng theo context".</li>
+<li><b>Xu hướng sparse attention đổi vai.</b> Trước đây tôi coi sparse attention là mối đe doạ vì nó làm attention rẻ đi. Giờ thấy chính sparse attention tạo ra chế độ bộ nhớ, nơi ý tưởng riêng của HyPrefill quan trọng nhất. Qwen3.8-Flash-Next và GLM-5.3-Flash chuyển từ "kiểm tra độ bền" thành <b>model headline</b>.</li>
+<li><b>Rủi ro độ bền mới, phải kiểm ở tuần 2.</b> Chế độ bộ nhớ chỉ tồn tại nếu kernel indexer thật sự cấp phát buffer \(c\cdot t\) theo mỗi lần gọi. Nếu kernel chuyển sang streaming top-k với workspace cố định, ràng buộc bộ nhớ biến mất và HyPrefill co lại thành "Layered Prefill cho hybrid cộng 0–10%". vLLM PR #56500 ("Reuse bounded prefill logits workspace") cho thấy upstream đang đi đúng hướng đó.</li>
+</ol>
+
+<!-- ======================= 9.7 ======================= -->
+<h3 id="q7">9.7 Cơ chế chi tiết trên Qwen3-Next</h3>
+<p><b>Operator groups.</b> Qwen3-Next có 48 layer, mỗi layer là một mixer rồi một MoE, tổng 96 sublayer: 12 attention mixer, 36 GDN mixer, 48 MoE (theo model card; xác minh bằng <code>config.json</code> ở tuần 0). Với chunk theo operator, <b>chỉ 12 trên 96 sublayer chạy chunk nhỏ</b>, 84 sublayer còn lại chạy \(k\cdot c\).</p>
+<p><b>Buffer ở chỗ đổi nhịp.</b> Có hai loại điểm đổi nhịp, mỗi loại 12 chỗ. Sau mỗi attention mixer, trước MoE của nó: buffer <i>gom</i> k chunk c thành một batch \(k\cdot c\). Trước mỗi attention mixer: hàng đợi <i>chia</i> batch \(k\cdot c\) thành k chunk c. Mỗi buffer tối đa \(k\cdot c\)·\(d_{\text{model}}\)·2 byte; với \(d_{\text{model}}\) = 2048 và \(k\cdot c\) = 2048 là 8 MB, 24 chỗ khoảng 200 MB, nhỏ so với 141 GB của H200.</p>
+<p><b>Tiết kiệm được gì, chính xác.</b> Với chi phí GDN affine \(a_G\) + \(b_G\)·c và MoE xấp xỉ \(W_{\text{read}}\) + η·c khi đã chạm gần hết expert:</p>
+<div class="eq">
+  <div class="m">\(\displaystyle k\,(a_G + b_G\, c) + k\,(W_{\text{read}} + \eta\, c)\)</div><div class="n">chunk chung: \(k\) lần gọi, mỗi lần \(c\) token</div>
+  <div class="m">\(\displaystyle (a_G + b_G\, kc) + (W_{\text{read}} + \eta\, kc)\)</div><div class="n">chunk theo operator: 1 lần gọi \(kc\) token</div>
+  <div class="m">\(\displaystyle \Delta = (k-1)\,a_G + (k-1)\,W_{\text{read}}\)</div><div class="n"><b>phần tiết kiệm</b>, mỗi layer, mỗi \(kc\) token</div>
+  <div class="t">Chi phí attention: không đổi.</div>
+</div>
+<p>Vậy HyPrefill không làm attention rẻ đi. Nó xoá các chi phí cố định dư thừa của GDN và MoE. Đó là lý do nó chỉ đáng kể khi các chi phí cố định đó bị nhân lên nhiều lần, tức khi attention buộc phải gọi nhiều lần nhỏ.</p>
+<p><b>Stagger.</b> 84 sublayer chạy \(k\cdot c\) không được bắn cùng một iteration, nếu không iteration đó vượt B. Trong pipeline điều này tự nhiên xảy ra: các sublayer khác nhau xử lý các batch khác nhau ở các độ sâu khác nhau. Lịch cụ thể là bài toán thiết kế của tuần 5.</p>
+<p><b>Một chỗ proposal viết quá gọn.</b> Proposal mô tả "nhóm phi-attention gom k chunk rồi chạy một lần" như thể các nhóm độc lập. Thực tế chúng nối tiếp theo chiều sâu, nên cơ chế thật là một <b>pipeline đa nhịp</b>: token chờ gom batch ở mỗi điểm đổi nhịp. Mô phỏng cho thấy độ trễ lấp đầy pipeline không giết được gain kể cả với Δ = 8K, nhưng design doc tuần 5 phải mô tả đúng như vậy.</p>
+
+<!-- ======================= 9.8 ======================= -->
+<h3 id="q8">9.8 Tính đúng đắn — điểm bán cho ICML</h3>
+<p>HyPrefill chỉ đổi <b>lịch</b>, không đổi <b>phép toán</b>:</p>
+<ul>
+<li><b>GDN:</b> chọn c là bội của 64 thì chuỗi các chunk kernel 64 token giống hệt; state truyền qua <code>initial_state</code> là tóm tắt chính xác của mọi token trước. Kết quả giống xử lý nguyên khối.</li>
+<li><b>MoE:</b> routing và tính toán theo từng token; đổi kích thước batch chỉ đổi hình dạng GEMM, tức thứ tự cộng dấu phẩy động.</li>
+<li><b>Attention:</b> causal với đầy đủ KV của các token trước, phép toán không đổi.</li>
+<li><b>Pipeline theo chiều sâu:</b> mỗi token vẫn đi qua các layer theo đúng thứ tự.</li>
+</ul>
+<p>Output giống baseline tới sai số dấu phẩy động. Kiểm bằng 200 prompt greedy ở tuần 13. Ở venue hệ thống đây là mục phụ; ở ICML đây là điểm mạnh nhất, vì câu hỏi đầu tiên của reviewer ML là "có hại chất lượng không", và HyPrefill trả lời được bằng cấu trúc chứ không bằng thực nghiệm.</p>
+
+<!-- ======================= 9.9 ======================= -->
+<h3 id="q9">9.9 Áp dụng ở đâu</h3>
+<div class="tbl"><table>
+<tr><th>Kịch bản triển khai</th><th>Có ràng buộc TBT?</th><th>HyPrefill có ích?</th></tr>
+<tr><td>Node decode của hệ PD/EPD, chạy append-prefill nhiều lượt</td><td>Có</td><td><b>Có — phạm vi chính.</b> Đúng cả khi toàn ngành disaggregate (PPD, arXiv 2603.13358, ICML 2026)</td></tr>
+<tr><td>Colocated mặc định của vLLM và SGLang, cụm 1–8 GPU</td><td>Có</td><td>Có</td></tr>
+<tr><td>Node prefill thuần của hệ disaggregated</td><td>Không</td><td>Không — nói thẳng, có ablation chứng minh</td></tr>
+</table></div>
+<p><b>Append-prefill vẫn là workload chính</b>, và mô phỏng củng cố thêm: ngay cả Δ = 8K cũng được lợi (128K: 15 xuống 10 iteration ở chế độ thời gian, 10 xuống 3 ở chế độ bộ nhớ). Kết hợp append-prefill với model sparse attention là tổ hợp mạnh nhất, vì context lớn làm \(c_{\text{mem}}\) nhỏ, và \(c_{\text{mem}}\) nhỏ là chỗ chunk theo operator có giá trị nhất.</p>
+
+<!-- ======================= 9.10 ======================= -->
+<h3 id="q10">9.10 So với từng công trình liên quan</h3>
+<div class="tbl"><table>
+<tr><th>Công trình</th><th>Làm gì</th><th>HyPrefill thêm gì</th></tr>
+<tr><td><b>Layered Prefill</b> — baseline chính</td><td>Pipeline theo chiều sâu, cùng chunk cho mọi operator; chỉ MoE + full attention</td><td>(1) đưa pipeline sang hybrid có GDN, giữ state đúng; (2) chỉ ra pipeline không đủ khi bị giới hạn bộ nhớ; (3) chunk theo operator cho chế độ đó</td></tr>
+<tr><td>Sarathi-Serve</td><td>Một chunk, đi hết chiều sâu mỗi iteration</td><td>Baseline gốc; mọi cải tiến đo so với nó nhưng không headline so với nó</td></tr>
+<tr><td>SLOWeave</td><td>Chọn chunk theo deadline decode, một chunk cho cả model</td><td>Mượn khung deadline + binary search; mở rộng thành vector chunk. Trả lời "sao không chạy SLOWeave cho từng group": các group chung deadline và nối nhau qua buffer</td></tr>
+<tr><td>COREY</td><td>Chọn chunk SSM theo entropy lúc chạy; thua static 0.7–8.8%</td><td>Tín hiệu là cấu trúc + SLO, tra bảng offline, không đo runtime; kèm bảng decision cost</td></tr>
+<tr><td>PPD</td><td>Quyết định append-prefill chạy ở node nào</td><td>Bổ sung: PPD quyết <i>ở đâu</i>, HyPrefill quyết <i>chia khối thế nào</i> khi đã ở đó</td></tr>
+<tr><td>PrefillOnly §4.2</td><td>Chunk FFN, attention nguyên khối, để giảm bộ nhớ, không có decode</td><td>Chứng minh granularity khác nhau theo operator là khả thi; HyPrefill làm dưới ràng buộc TBT</td></tr>
+<tr><td>FlowPrefill</td><td>Điểm preempt ở biên operator</td><td>Cùng số token qua mọi operator; khác bài toán</td></tr>
+<tr><td>Marconi</td><td>Prefix caching cho hybrid</td><td>Khác tầng (cache, không phải lập lịch); mượn mạch viết paper</td></tr>
+</table></div>
+
+<!-- ======================= 9.11 ======================= -->
+<h3 id="q11">9.11 Cổng G1 sửa lại</h3>
+<p>Cổng G1 cũ ("oracle gain ≥ 1.25 ở t ≥ 32K") đo gộp hai cơ chế, nên có thể <b>đạt</b> trong khi đóng góp riêng của HyPrefill bằng không. Tách thành ba câu hỏi, viết ra trước khi chạy:</p>
+<div class="tbl"><table>
+<tr><th>Cổng</th><th>Đo gì</th><th>Đạt</th><th>Trượt thì</th></tr>
+<tr><td><b>G1a</b></td><td>Layered / Sarathi trên model hybrid</td><td>≥ 1.20×</td><td>Cả hướng yếu; chuyển phương án lui</td></tr>
+<tr><td><b>G1b</b></td><td>HyPrefill / Layered, ở ít nhất một chế độ thực tế</td><td>≥ 1.25×</td><td>Nếu &lt; 1.10× ở mọi chế độ: bài co lại thành "Layered Prefill cho hybrid", nhỏ hơn nhiều; cân nhắc phương án lui</td></tr>
+<tr><td><b>G1c</b></td><td>Kernel indexer thật trên Qwen3.8-Flash-Next hoặc GLM-5.3-Flash có cấp phát buffer \(c\cdot t\) theo mỗi lần gọi không, hay đã streaming với workspace cố định?</td><td>Có buffer \(c\cdot t\)</td><td>Chế độ bộ nhớ không tồn tại trong thực tế → G1b gần như chắc chắn trượt</td></tr>
+</table></div>
+<p>G1c rẻ nhất và quyết định nhất: một buổi đọc mã kernel và đo <code>torch.cuda.max_memory_allocated()</code> theo c và t. Làm nó đầu tiên trong tuần 2.</p>
+
+<!-- ======================= 9.12 ======================= -->
+<h3 id="q12">9.12 Rủi ro, xếp theo mức nguy hiểm</h3>
+<div class="tbl"><table>
+<tr><th>Rủi ro</th><th>Đỡ</th></tr>
+<tr><td><b>Kernel indexer chuyển sang streaming, chế độ bộ nhớ biến mất</b></td><td>G1c đo ngay tuần 2. Nếu biến mất: viết bài "Layered Prefill cho hybrid" cho venue nhỏ hơn, hoặc chuyển phương án lui</td></tr>
+<tr><td><b>Reviewer gán gain cho Layered Prefill</b></td><td>Headline luôn là HyPrefill / Layered; cài Layered cho hybrid làm baseline</td></tr>
+<tr><td>Engineering nặng hơn dự kiến (pipeline đa nhịp khó hơn Layered)</td><td>Prototype trên fork layered-prefill; cổng cứng tuần 8</td></tr>
+<tr><td>Chi phí cố định của MoE đã được decode chia sẻ trên node decode bận</td><td>Đo riêng ở tuần 2: expert chạm bởi decode so với bởi chunk prefill</td></tr>
+<tr><td>Overhead buffer ăn mất gain (kiểu COREY)</td><td>Đo ở tuần 6; buffer chỉ 24 chỗ, ~200 MB</td></tr>
+</table></div>
+<p>Dòng thứ tư là một lo ngại tôi chưa nêu trước đây. Trên node decode có batch decode lớn, lớp MoE đã đọc gần hết trọng số expert cho decode rồi, nên thêm chunk prefill vào không tốn thêm nhiều lần đọc. Khi đó phần tiết kiệm \(W_{\text{read}}\) của HyPrefill co lại, chỉ còn phần launch của GDN. Layered Prefill đo được tiết kiệm 39% trên prompt dài nhưng chỉ 12% trên prompt ngắn, phù hợp với lo ngại này. Phải đo ở tuần 2 bằng cách so tập expert bị chạm bởi decode với tập bị chạm bởi chunk prefill.</p>
+
+<!-- ======================= 9.13 ======================= -->
+<h3 id="q13">9.13 Venue và phương án lui</h3>
+<p><b>ICML 2027</b>, hạn khoảng 28/01/2027. Tiền lệ đã xác minh: PPD (arXiv 2603.13358) "Accepted at ICML 2026", cùng họ bài lập lịch prefill nhiều lượt. MLSys bị loại vì không có trong danh sách xếp hạng. Bốn điều chỉnh khi viết cho ICML nằm ở PROPOSAL §8.1; quan trọng nhất là mở bài bằng tính đúng đắn (mục 9.8). Nếu cổng cứng tuần 8 trượt, nộp SIGMETRICS ngày 11/01 bản đo lường; nếu ICML từ chối, nộp lại NeurIPS tháng 5.</p>
+<p><b>Phương án lui số một</b> là bài đo độ trung thực của checkpoint FP4 trên phần cứng không hỗ trợ native (bản B, <code>docs/04_REVIEW_fp4_hopper_fallback.md</code>): MXFP4 sang FP8 là exact, NVFP4 sang FP8 thì không, và chưa ai đo mức lệch. Dữ liệu cho nó có sẵn từ phần đo MoE theo precision path ở tuần 2.</p>
+
+<!-- ======================= self-check ======================= -->
+<h3>Tự kiểm tra phần 9</h3>
+<details><summary>13. Vì sao pipeline theo chiều sâu tự giải được ràng buộc thời gian của attention?</summary><p>Budget TBT là ràng buộc mỗi iteration. Sarathi chạy cả 12 attention layer trong một iteration nên mỗi layer chỉ được một phần mười hai budget. Pipeline trải chúng ra nhiều iteration, mỗi iteration chỉ chạy 1–2 layer, nên mỗi layer tự lấy chunk lớn.</p></details>
+<details><summary>14. Vì sao pipeline không giải được ràng buộc bộ nhớ của indexer?</summary><p>Buffer logits \(c\cdot t\cdot H\cdot 4\) byte là ràng buộc mỗi lần gọi. Trải layer ra nhiều iteration không làm lần gọi nào nhỏ đi, nên attention vẫn bị kẹp ở \(c_{\text{mem}}\).</p></details>
+<details><summary>15. HyPrefill tiết kiệm chính xác cái gì, và không tiết kiệm cái gì?</summary><p>Tiết kiệm (k − 1) lần launch GDN và (k − 1) lần đọc trọng số expert mỗi layer mỗi \(k\cdot c\) token. Không làm chi phí attention rẻ đi.</p></details>
+<details><summary>16. Vì sao headline phải là HyPrefill / Layered chứ không phải HyPrefill / Sarathi?</summary><p>Vì phần lớn gain so với Sarathi ở chế độ thời gian là của pipeline, tức của Layered Prefill. So với Sarathi sẽ gán nhầm công của người khác, và reviewer biết Layered Prefill sẽ bắt ngay.</p></details>
+<details><summary>17. Thí nghiệm nào ở tuần 2 có thể giết HyPrefill nhanh nhất?</summary><p>G1c: kiểm kernel indexer thật có cấp phát buffer \(c\cdot t\) theo mỗi lần gọi không. Nếu kernel đã streaming với workspace cố định, chế độ bộ nhớ không tồn tại và đóng góp riêng của HyPrefill co về 0–10%.</p></details>
 
 
 <p style="margin-top:2.5rem;color:var(--muted);font-size:.9em">Trang này là phần 0 của kế hoạch HyPrefill (15/09/2026). Số liệu trong bộ tính là minh hoạ; số thật đến từ thí nghiệm 1.</p>
