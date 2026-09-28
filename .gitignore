@@ -1,0 +1,35 @@
+# Model weights and caches — never commit (hundreds of GB)
+hf_cache/
+models/
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.gguf
+
+# Large raw dumps (expert routes, activations, traces) — keep on the server
+results/**/dumps/
+results/**/*.npy
+results/**/*.npz
+results/**/*.parquet
+results/**/*.pkl
+*.nsys-rep
+*.ncu-rep
+*.qdrep
+*.sqlite
+
+# Small CSVs, config.json and summaries under results/ ARE committed on purpose.
+
+# Third-party repos cloned by scripts/setup_server.sh
+third_party/
+
+# Python / editor noise
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
+.env
+.vscode/
+.idea/
+*.log
+nohup.out
