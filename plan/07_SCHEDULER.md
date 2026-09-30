@@ -1,8 +1,7 @@
-# Tuần 07 — Scheduler lõi — CỔNG G3
+# Bước 7 — Scheduler lõi — CỔNG G3
 
-**Ngày:** 03–09/11/2026
-**Mục tiêu:** Hoàn thành scheduler chọn chunk theo group với stagger, chạy đúng trên fork.
-**Cổng:** **G3 — overhead buffer + stagger ≤ 50% oracle gain.** Nếu vượt: dừng nhánh prototype, viết bài measurement + oracle + simulator, nộp SIGMETRICS 11/01.
+**Mục tiêu:** Hoàn thành scheduler chọn chunk theo group với stagger, chạy đúng trong vLLM (cùng hạ tầng với chế độ Layered).
+**Cổng:** **G3 — overhead buffer + stagger ≤ 50% oracle gain.** Nếu vượt: dừng nhánh prototype, viết bài measurement + oracle + simulator, nộp SIGMETRICS.
 
 ---
 
@@ -21,7 +20,7 @@
 mỗi iteration:
   D          = thời gian decode batch hiện tại (đo hoặc dự đoán)
   P          = B − D
-  c_FA       = lookup(cost_FA, t, P)              # bội của 64, align block Mamba
+  c_FA       = lookup(cost_FA, t, P)              # bội của 128 (tile FA3), align block Mamba
   for g in nonFA_groups:
       if iteration % k_g == offset_g:
           chạy group g với k_g · c_FA token từ buffer
@@ -40,7 +39,7 @@ Khi prompt gần hết, buffer không đủ k chunk. Xử lý: chạy nốt vớ
 
 ### 2.4 Kiểm tra tính đúng sớm
 
-Chạy 20 prompt greedy, so token-level với baseline chunked prefill. Nếu lệch, nguyên nhân thường là state GDN truyền sai thứ tự hoặc boundary không align. Sửa ngay, đừng để đến tuần 13.
+Chạy 20 prompt greedy, so token-level với baseline chunked prefill. Nếu lệch, nguyên nhân thường là state GDN truyền sai thứ tự hoặc boundary không align. Sửa ngay, đừng để đến bước 13.
 
 ## 3. Cổng G3
 
@@ -51,7 +50,7 @@ Tiêu chí ở đầu file. Đây là cổng có xác suất trượt cao thứ 
 
 ## KẾT QUẢ
 
-> **Để trống — điền khi làm xong tuần này.**
+> **Để trống — điền khi làm xong bước này.**
 
 ### R1. Số liệu chính
 
@@ -73,7 +72,7 @@ Tiêu chí ở đầu file. Đây là cổng có xác suất trượt cao thứ 
 
 -
 
-### R5. Việc chuyển sang tuần sau
+### R5. Việc chuyển sang bước sau
 
 -
 

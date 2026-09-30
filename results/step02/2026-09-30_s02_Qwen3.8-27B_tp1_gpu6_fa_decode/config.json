@@ -1,0 +1,101 @@
+{
+  "date": "2026-09-30T01:21:30",
+  "model_config": "results/step00/configs/Qwen_Qwen3.8-27B.json",
+  "shapes": {
+    "model_type": "qwen3_5_text",
+    "tp": 1,
+    "attn": {
+      "layers": 16,
+      "heads": 24,
+      "kv_heads": 4,
+      "head_dim": 256,
+      "kv_block": 784
+    },
+    "gdn": {
+      "layers": 48,
+      "k_heads": 16,
+      "v_heads": 48,
+      "d_k": 128,
+      "d_v": 128,
+      "conv_kernel": 4,
+      "ssm_dtype": "float32"
+    },
+    "dense_attn": {
+      "layers": 16,
+      "heads": 24,
+      "kv_heads": 4,
+      "head_dim": 256,
+      "kv_block": 784,
+      "hidden": 5120,
+      "gated": true
+    },
+    "dense_gdn": {
+      "layers": 48,
+      "k_heads": 16,
+      "v_heads": 48,
+      "d_k": 128,
+      "d_v": 128,
+      "conv_kernel": 4,
+      "ssm_dtype": "float32",
+      "hidden": 5120
+    },
+    "gdn_conv": {
+      "layers": 48,
+      "k_heads": 16,
+      "v_heads": 48,
+      "d_k": 128,
+      "d_v": 128,
+      "conv_kernel": 4,
+      "ssm_dtype": "float32"
+    },
+    "dense_mlp": {
+      "layers": 64,
+      "hidden": 5120,
+      "inter": 17408
+    }
+  },
+  "dtype": "bfloat16",
+  "gpu": [
+    {
+      "index": "6",
+      "name": "NVIDIA H200",
+      "memory.used": "625",
+      "memory.total": "143771",
+      "utilization.gpu": "0",
+      "clocks.sm": "1980",
+      "clocks.max.sm": "1980",
+      "temperature.gpu": "42"
+    }
+  ],
+  "cuda_visible_devices": "6",
+  "python": "3.12.14",
+  "torch": "2.13.0+cu130",
+  "cuda": "13.0",
+  "vllm": "0.30.0",
+  "flashinfer": "0.6.18.post1",
+  "repo_commit": "4fefde7cfbf31e6d373ca0fd5216d4392ce44296",
+  "repo_dirty": true,
+  "cmd": "bench/op_cost.py --clock-locked --config results/step00/configs/Qwen_Qwen3.8-27B.json --tp 1 --op fa_decode --c 1,8,16,32,64 --t 4096,16384,32768,65536,131072,262144 --tag s02_Qwen3.8-27B_tp1_gpu6_fa_decode",
+  "clock_locked": true,
+  "gdn_state": "prefill",
+  "gdn_backend": "flashinfer",
+  "fa_version": 3,
+  "kv_layout": "paged",
+  "lock_mhz": "1980",
+  "routing": null,
+  "decode_batch": "8,32,64,128",
+  "warmup": 10,
+  "iters": 30,
+  "gpu_after": [
+    {
+      "index": "6",
+      "name": "NVIDIA H200",
+      "memory.used": "66657",
+      "memory.total": "143771",
+      "utilization.gpu": "100",
+      "clocks.sm": "1935",
+      "clocks.max.sm": "1980",
+      "temperature.gpu": "50"
+    }
+  ]
+}

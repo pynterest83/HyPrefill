@@ -1,0 +1,21 @@
+index, name, driver_version, vbios_version, clocks.current.sm [MHz], clocks.max.sm [MHz], clocks.current.memory [MHz], power.limit [W], power.max_limit [W], persistence_mode, memory.total [MiB]
+0, NVIDIA H200, 590.48.01, 96.00.D0.00.03, 345 MHz, 1980 MHz, 3201 MHz, 700.00 W, 700.00 W, Enabled, 143771 MiB
+1, NVIDIA H200, 590.48.01, 96.00.D0.00.03, 345 MHz, 1980 MHz, 3201 MHz, 700.00 W, 700.00 W, Enabled, 143771 MiB
+2, NVIDIA H200, 590.48.01, 96.00.D0.00.03, 345 MHz, 1980 MHz, 3201 MHz, 700.00 W, 700.00 W, Enabled, 143771 MiB
+3, NVIDIA H200, 590.48.01, 96.00.D0.00.03, 345 MHz, 1980 MHz, 3201 MHz, 700.00 W, 700.00 W, Enabled, 143771 MiB
+4, NVIDIA H200, 590.48.01, 96.00.D0.00.03, 1980 MHz, 1980 MHz, 3201 MHz, 700.00 W, 700.00 W, Enabled, 143771 MiB
+5, NVIDIA H200, 590.48.01, 96.00.D0.00.03, 1980 MHz, 1980 MHz, 3201 MHz, 700.00 W, 700.00 W, Enabled, 143771 MiB
+6, NVIDIA H200, 590.48.01, 96.00.D0.00.03, 1980 MHz, 1980 MHz, 3201 MHz, 700.00 W, 700.00 W, Enabled, 143771 MiB
+7, NVIDIA H200, 590.48.01, 96.00.D0.00.03, 1980 MHz, 1980 MHz, 3201 MHz, 700.00 W, 700.00 W, Enabled, 143771 MiB
+
+Cuda compilation tools, release 13.0, V13.0.48
+Build cuda_13.0.r13.0/compiler.36260728_0
+
+Linux quangch1-dev-0 6.8.0-117-generic #117-Ubuntu SMP PREEMPT_DYNAMIC Tue May  5 19:26:24 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
+CPU(s):                                  192
+Model name:                              INTEL(R) XEON(R) PLATINUM 8558
+CPU(s) scaling MHz:                      26%
+NUMA node0 CPU(s):                       0-23,96-119
+NUMA node1 CPU(s):                       24-47,120-143
+NUMA node2 CPU(s):                       48-71,144-167
+NUMA node3 CPU(s):                       72-95,168-191

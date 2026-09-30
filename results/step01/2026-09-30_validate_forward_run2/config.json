@@ -1,0 +1,32 @@
+{
+  "date": "2026-09-30T02:07:11",
+  "model": "/home/quangch1/hf_cache/hub/models--Qwen--Qwen3.8-27B/snapshots/1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0",
+  "table": "results/step01/cost_tables/Qwen3.8-27B_tp1.csv",
+  "cs": [
+    512,
+    2048,
+    8192
+  ],
+  "ts": [
+    16384,
+    65536
+  ],
+  "repeats": 3,
+  "baseline": "none",
+  "decode_batch": [
+    8,
+    32,
+    64
+  ],
+  "decode_ctx": 4096,
+  "model_tag": "Qwen3.8-27B_tp1",
+  "tp": 1,
+  "gpu": "6, NVIDIA H200, 1980 MHz, 700.00 W",
+  "cuda_visible_devices": "6",
+  "vllm": "0.30.0",
+  "torch": "2.13.0+cu130",
+  "repo_commit": "4fefde7cfbf31e6d373ca0fd5216d4392ce44296",
+  "cmd": "bench/validate_forward.py --c 512,2048,8192 --t 16384,65536 --decode-batch 8,32,64 --repeats 3",
+  "clock_locked": true,
+  "note": "clock lock verified by the caller (idle SM clock pinned at 1980 MHz)"
+}

@@ -1,6 +1,5 @@
-# Tuần 10 — Hoàn thiện prototype — CỔNG G4
+# Bước 10 — Hoàn thiện prototype — CỔNG G4
 
-**Ngày:** 24–30/11/2026
 **Mục tiêu:** Prototype chạy ổn định trên hai model, khớp simulator.
 **Cổng:** **G4 — prototype khớp simulator trong ±15%.** Nếu lệch hơn, tìm nguyên nhân và báo cáo sai lệch như một finding, không che.
 
@@ -10,8 +9,8 @@
 
 - [ ] Chạy ổn định trên Qwen3-Next-80B-A3B và Kimi-Linear-48B-A3B
 - [ ] Bảng so sánh prototype với simulator trên ≥ 10 cấu hình
-- [ ] Sửa xong các lỗi phát hiện ở tuần 8–9
-- [ ] Đóng băng tính năng — từ tuần 11 chỉ đo, không thêm
+- [ ] Sửa xong các lỗi phát hiện ở bước 8–9
+- [ ] Đóng băng tính năng — từ bước 11 chỉ đo, không thêm
 
 ## 2. Việc chi tiết
 
@@ -25,18 +24,18 @@ Chạy liên tục 2 giờ ở tải cao, kiểm tra không rò bộ nhớ, khô
 
 ### 2.3 Đóng băng
 
-Từ tuần 11 trở đi chỉ chạy đo và viết. Mọi ý tưởng thêm ghi vào `LOG.md` mục "future work", không code.
+Từ bước 11 trở đi chỉ chạy đo và viết. Mọi ý tưởng thêm ghi vào `LOG.md` mục "future work", không code.
 
 ## 3. Ghi chú
 
-Đây là tuần cuối cùng được sửa cơ chế. Nếu còn ý tưởng cải tiến, cân nhắc kỹ: một cải tiến 5% không đáng nếu nó làm trượt lịch eval.
+Đây là bước cuối cùng được sửa cơ chế. Nếu còn ý tưởng cải tiến, cân nhắc kỹ: một cải tiến 5% không đáng nếu nó làm trượt lịch eval.
 
 
 ---
 
 ## KẾT QUẢ
 
-> **Để trống — điền khi làm xong tuần này.**
+> **Để trống — điền khi làm xong bước này.**
 
 ### R1. Số liệu chính
 
@@ -58,7 +57,7 @@ Từ tuần 11 trở đi chỉ chạy đo và viết. Mọi ý tưởng thêm gh
 
 -
 
-### R5. Việc chuyển sang tuần sau
+### R5. Việc chuyển sang bước sau
 
 -
 

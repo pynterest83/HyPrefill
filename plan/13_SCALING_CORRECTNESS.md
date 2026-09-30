@@ -1,8 +1,7 @@
-# Tuần 13 — Scaling, tính đúng, năng lượng — CỔNG G5
+# Bước 13 — Scaling, tính đúng, năng lượng — CỔNG G5
 
-**Ngày:** 15–21/12/2026
 **Mục tiêu:** Hoàn tất hình scaling theo context, kiểm tra tính đúng, chốt venue.
-**Cổng:** **G5 — đủ hình cho paper chưa? Chọn venue cuối: ATC/ICML (cuối 01/2027) hay SOSP (~01/04/2027).**
+**Cổng:** **G5 — đủ hình cho paper chưa? Chọn venue cuối: ICML hay SOSP (deadline ở PROPOSAL §8).**
 
 ---
 
@@ -11,7 +10,7 @@
 - [ ] Hình scaling: gain theo t từ 4K đến 256K — **hình ăn tiền của paper**
 - [ ] Kiểm tra tính đúng: 200 prompt greedy, so token-level với baseline
 - [ ] Bảng năng lượng
-- [ ] Bảng decision cost (từ tuần 6, cập nhật với số cuối)
+- [ ] Bảng decision cost (từ bước 6, cập nhật với số cuối)
 - [ ] Quyết định venue
 
 ## 2. Hình scaling
@@ -33,18 +32,18 @@ Báo cáo tỉ lệ token khớp trong paper.
 
 | Tình huống | Venue |
 |---|---|
-| Đủ hình, prototype chạy, ≥ 4 model | **ICML 2027** (~28/01). Áp dụng 4 điều chỉnh viết cho venue ML, xem PROPOSAL §8.1 |
-| Đủ hình nhưng chỉ có fork, không có vLLM | **SIGMETRICS 11/01** bản measurement. Lưu ý chỉ cách ICML 2.5 tuần, không nộp cả hai |
-| Cần thêm model hoặc thêm hệ thống | **NeurIPS ~05/2027** (nộp lại kèm phản biện ICML) hoặc SOSP ~01/04/2027 |
+| Đủ hình, prototype chạy, ≥ 4 model | **ICML 2027**. Áp dụng 4 điều chỉnh viết cho venue ML, xem PROPOSAL §8.1 |
+| Đủ hình nhưng chỉ có phương án lui (fork hoặc measurement), không có vLLM end-to-end | **SIGMETRICS 2027** bản measurement. Deadline sát ICML, không nộp cả hai |
+| Cần thêm model hoặc thêm hệ thống | **NeurIPS 2027** (nộp lại kèm phản biện ICML) hoặc SOSP 2027 |
 
-Quyết định ở đây, không để đến tuần 15.
+Quyết định ở đây, không để đến bước 15.
 
 
 ---
 
 ## KẾT QUẢ
 
-> **Để trống — điền khi làm xong tuần này.**
+> **Để trống — điền khi làm xong bước này.**
 
 ### R1. Số liệu chính
 
@@ -66,7 +65,7 @@ Quyết định ở đây, không để đến tuần 15.
 
 -
 
-### R5. Việc chuyển sang tuần sau
+### R5. Việc chuyển sang bước sau
 
 -
 

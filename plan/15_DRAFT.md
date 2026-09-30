@@ -1,6 +1,5 @@
-# Tuần 15 — Bản nháp đầy đủ
+# Bước 15 — Bản nháp đầy đủ
 
-**Ngày:** 29/12/2026–04/01/2027
 **Mục tiêu:** Viết xong bản nháp và gửi hai người đọc chéo.
 
 ---
@@ -8,7 +7,7 @@
 ## 1. Đầu ra bắt buộc
 
 - [ ] Bản nháp đầy đủ, đúng số trang của venue
-- [ ] Gửi ít nhất hai người đọc chéo, hạn phản hồi 02/01
+- [ ] Gửi ít nhất hai người đọc chéo
 - [ ] Mọi claim trong bài truy được về một số cụ thể trong `results/`
 
 ## 2. Thứ tự viết
@@ -42,7 +41,7 @@ Viết theo thứ tự này, không theo thứ tự đọc:
 
 ## KẾT QUẢ
 
-> **Để trống — điền khi làm xong tuần này.**
+> **Để trống — điền khi làm xong bước này.**
 
 ### R1. Số liệu chính
 
@@ -64,7 +63,7 @@ Viết theo thứ tự này, không theo thứ tự đọc:
 
 -
 
-### R5. Việc chuyển sang tuần sau
+### R5. Việc chuyển sang bước sau
 
 -
 

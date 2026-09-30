@@ -1,0 +1,18 @@
+
+######## repeatability 2026-09-29_Qwen3-Next-80B-A3B-Instruct_tp2_gpu6 vs 2026-09-29_Qwen3-Next-80B-A3B-Instruct_tp2_gpu7
+dense_attn: 10 rows, median diff 0.23%, p95 0.37%, max 0.40%, within 3%: 100%
+dense_gdn: 10 rows, median diff 0.22%, p95 0.69%, max 0.97%, within 3%: 100%
+fa: 70 rows, median diff 0.48%, p95 2.93%, max 9.27%, within 3%: 94%
+gdn: 70 rows, median diff 0.11%, p95 0.35%, max 0.52%, within 3%: 100%
+gdn_conv: 10 rows, median diff 0.77%, p95 1.37%, max 1.45%, within 3%: 100%
+worst rows:
+op    c      t  p50_ms_a  p50_ms_b  diff_pct  sm_clock_mean_mhz_a  sm_clock_mean_mhz_b
+fa 1024 131072    1.5201    1.6609    9.2660                 1965                 1965
+fa 1024  65536    0.7847    0.8285    5.5713                 1942                 1808
+fa 4096  16384    0.8760    0.8436    3.7076                 1808                 1784
+fa 4096  32768    1.5899    1.6384    3.0504                 1722                 1685
+fa 2048 131072    3.1554    3.2432    2.7803                 1592                 1567
+fa 2048  16384    0.4092    0.4188    2.3484                 1949                 1945
+fa 8192   4096    0.7365    0.7534    2.3029                 1950                 1929
+fa  256 131072    0.3922    0.4009    2.2180                 1962                 1958
+-> FAIL: 4 of 170 rows differ by >= 3%

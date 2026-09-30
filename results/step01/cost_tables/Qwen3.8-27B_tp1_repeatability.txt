@@ -1,0 +1,19 @@
+
+######## repeatability 2026-09-29_Qwen3.8-27B_tp1_gpu6 vs 2026-09-29_Qwen3.8-27B_tp1_gpu7
+dense_attn: 10 rows, median diff 0.23%, p95 5.87%, max 7.31%, within 3%: 80%
+dense_gdn: 10 rows, median diff 0.24%, p95 7.78%, max 8.58%, within 3%: 80%
+dense_mlp: 10 rows, median diff 0.94%, p95 4.14%, max 4.14%, within 3%: 80%
+fa: 70 rows, median diff 0.45%, p95 2.82%, max 5.65%, within 3%: 96%
+gdn: 70 rows, median diff 0.13%, p95 0.42%, max 0.58%, within 3%: 100%
+gdn_conv: 10 rows, median diff 0.36%, p95 1.24%, max 1.53%, within 3%: 100%
+worst rows:
+        op    c      t  p50_ms_a  p50_ms_b  diff_pct  sm_clock_mean_mhz_a  sm_clock_mean_mhz_b
+ dense_gdn 2048      0    0.7068    0.7675    8.5819                 1932                 1931
+dense_attn 4096      0    1.5999    1.4829    7.3135                 1728                 1785
+ dense_gdn 4096      0    1.5934    1.4850    6.7994                 1619                 1694
+        fa   65 131072    0.3903    0.4123    5.6472                 1942                 1968
+        fa  128  65536    0.3197    0.3332    4.2253                 1968                 1957
+        fa   64 131072    0.3499    0.3352    4.2068                 1923                 1975
+ dense_mlp 2048      0    1.5590    1.6236    4.1444                 1602                 1531
+ dense_mlp 1024      0    0.8435    0.8086    4.1410                 1898                 1922
+-> FAIL: 9 of 180 rows differ by >= 3%

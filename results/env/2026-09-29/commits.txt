@@ -1,0 +1,4 @@
+repo 4fefde7cfbf31e6d373ca0fd5216d4392ce44296 dirty=yes
+third_party/vllm ced6857afa0ea7b2e3f0846a62e1394e90f15607
+third_party/layered-prefill 053f80e5201a7c0ab56e468e3d578907a2ca9cc3
+third_party/layered-prefill/flash-attention d9e577e1b9c62f0d92d0a263d792de41a554e0bd

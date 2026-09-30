@@ -13,7 +13,7 @@
 //   hyprefill: depth-pipelined, attention chunk c, every other operator k*c (k >= 2).
 //
 // All cost constants below are ILLUSTRATIVE. Replace them with the per-sublayer
-// numbers measured in weeks 1–2 (bench/op_cost.py) before drawing conclusions.
+// numbers measured in steps 1–2 (bench/op_cost.py) before drawing conclusions.
 //
 // Usage:  node sim/hyprefill_sim.js [mode]
 //   mode = full      full attention, time-bound            (default)
@@ -95,7 +95,7 @@ function best(model, delta, t, ks){
 // ---------- run ----------
 const mode = process.argv[2] || 'full';
 const model = makeModel(mode);
-console.log(`mode=${mode}   P=${P} ms   (illustrative constants — replace with week 1–2 measurements)`);
+console.log(`mode=${mode}   P=${P} ms   (illustrative constants — replace with step 1–2 measurements)`);
 console.log('t        Δ       | Sarathi | Layered k=1 | HyPrefill k>=2 | Lay/Sar | Hy/Lay | Hy/Sar');
 for (const t of [65536, 131072, 262144]){
   for (const d of [8192, 32768, 131072]){

@@ -45,9 +45,9 @@ Phương pháp: kiểm tra trực tiếp vLLM/SGLang/TensorRT-LLM (PR, issue, do
 
 ## 5. Khuyến nghị (cập nhật 18/09/2026)
 
-**Không làm thành paper riêng — nhưng cũng không bỏ.** Phần đo lường của idea này trùng ~70% với kill test tuần 1–2 của HyPrefill: dựng `cost_MoE(c)` trên H200 buộc phải chọn đường kernel (Marlin W4A16 vs Humming W4AFP8), nên thêm chiều precision vào sweep chỉ tốn ~2 ngày.
+**Không làm thành paper riêng — nhưng cũng không bỏ.** Phần đo lường của idea này trùng ~70% với kill test bước 1–2 của HyPrefill: dựng `cost_MoE(c)` trên H200 buộc phải chọn đường kernel (Marlin W4A16 vs Humming W4AFP8), nên thêm chiều precision vào sweep chỉ tốn ~2 ngày.
 
-### 5.1 Việc phải làm trong tuần 1–2 của HyPrefill (2 ngày)
+### 5.1 Việc phải làm trong bước 1–2 của HyPrefill (2 ngày)
 - Đo `cost_MoE(c, path)` với path ∈ {Marlin W4A16, Humming W4AFP8, FlashInfer SM90 MXFP4×FP8, FP8 materialized}.
 - Dump phân bố M_e theo expert ở vài mức tải trên DeepSeek-V4-Flash hoặc GLM-5.3-Flash.
 - Kết quả vào thẳng cost model của HyPrefill: scheduler chọn đồng thời (c_MoE, precision path).
@@ -72,7 +72,7 @@ Bền hơn trước OSS test: vLLM thêm heuristic dispatch theo M chỉ mất m
 Kill test 1 tuần: nếu thăng hạng 20% expert đạt ≥ 80% lợi ích với ~20% chi phí bộ nhớ → đáng viết tiếp. Nếu đường cong phẳng → bỏ.
 
 ### 5.4 Vai trò trong danh mục
-Đây là **phương án lui nhanh nhất** nếu HyPrefill trượt cổng G1 ở tuần 2, vì lúc đó số liệu đã có sẵn và không cần hạ tầng mới. Xem bảng phương án lui trong `01_HYPREFILL_PLAN.md` §0.2b.
+Đây là **phương án lui nhanh nhất** nếu HyPrefill trượt cổng G1 ở bước 2, vì lúc đó số liệu đã có sẵn và không cần hạ tầng mới. Xem bảng phương án lui trong `01_HYPREFILL_PLAN.md` §0.2b.
 
 ## 6. Lỗi thực tế trong file idea cần sửa
 
@@ -121,6 +121,6 @@ Vẫn dưới HyPrefill và vẫn là **phương án lui số 1**, không thay t
 ### 7.4 Nếu muốn kiểm trong 1 tuần
 
 1. Xác nhận NVFP4 trên H200 còn hỏng thật: chạy MiniMax-M3 NVFP4, xem có tái hiện issue #49070 không.
-2. Đo `cost_MoE(c, path)` cho 4 đường kernel (đã nằm trong tuần 1–2 của HyPrefill, +2 ngày).
+2. Đo `cost_MoE(c, path)` cho 4 đường kernel (đã nằm trong bước 1–2 của HyPrefill, +2 ngày).
 3. Dump phân bố `M_e` theo expert ở vài mức tải.
 4. Tính oracle: thăng hạng 20% expert nóng lên FP8 đạt bao nhiêu % lợi ích với bao nhiêu % chi phí bộ nhớ? Nếu ≥80% lợi ích với ~20% bộ nhớ → đáng viết tiếp. Đường cong phẳng → bỏ.

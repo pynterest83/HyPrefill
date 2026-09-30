@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Quick sanity check of the HyPrefill environment on the GPU server.
 
-Prints library versions, GPUs, and runs two tiny timed kernels
-(flash-attention and Gated DeltaNet) so you know week 1 will work.
+Prints library versions, GPUs, and runs two tiny timed kernels -- the ones vLLM
+serves with on H200: FA3 (vllm_flash_attn) and FlashInfer GDN -- so you know
+step 1 will work.
 """
 import os, sys, time
 
@@ -31,28 +32,40 @@ def timed(fn, warmup=5, iters=20):
 
 dev = "cuda:0"
 try:
-    from flash_attn import flash_attn_func
-    q = torch.randn(1, 1024, 16, 128, device=dev, dtype=torch.bfloat16)
-    k = torch.randn(1, 8192, 16, 128, device=dev, dtype=torch.bfloat16)
+    from vllm.vllm_flash_attn import flash_attn_varlen_func
+    q = torch.randn(1024, 16, 128, device=dev, dtype=torch.bfloat16)
+    k = torch.randn(8192, 8, 128, device=dev, dtype=torch.bfloat16)
     v = torch.randn_like(k)
-    ms = timed(lambda: flash_attn_func(q, k, v, causal=False))
-    ok(f"flash_attn: q=1024, kv=8192 -> {ms:.3f} ms")
+    cu_q = torch.tensor([0, 1024], device=dev, dtype=torch.int32)
+    cu_k = torch.tensor([0, 8192], device=dev, dtype=torch.int32)
+    ms = timed(lambda: flash_attn_varlen_func(q, k, v, max_seqlen_q=1024, cu_seqlens_q=cu_q,
+                                              max_seqlen_k=8192, cu_seqlens_k=cu_k,
+                                              causal=True, fa_version=3))
+    ok(f"vllm_flash_attn FA3: q=1024, kv=8192 -> {ms:.3f} ms")
 except Exception as e:
-    bad(f"flash_attn: {e}")
+    bad(f"vllm_flash_attn FA3: {e}")
 
 try:
-    from fla.ops.gated_delta_rule import chunk_gated_delta_rule
-    B, T, H, D = 1, 2048, 16, 128
-    q = torch.randn(B, T, H, D, device=dev, dtype=torch.bfloat16)
-    k = torch.nn.functional.normalize(torch.randn(B, T, H, D, device=dev, dtype=torch.bfloat16), dim=-1)
-    v = torch.randn(B, T, H, D, device=dev, dtype=torch.bfloat16)
-    g = torch.nn.functional.logsigmoid(torch.randn(B, T, H, device=dev, dtype=torch.float32))
-    beta = torch.rand(B, T, H, device=dev, dtype=torch.bfloat16).sigmoid()
-    h0 = torch.zeros(B, H, D, D, device=dev, dtype=torch.float32)
-    ms = timed(lambda: chunk_gated_delta_rule(q, k, v, g, beta, initial_state=h0, output_final_state=True))
-    ok(f"fla chunk_gated_delta_rule: T=2048 with initial_state -> {ms:.3f} ms")
+    from vllm.model_executor.layers.mamba.gdn.qwen_gdn_linear_attn import fi_chunk_gated_delta_rule
+    T, HK, HV, D = 2048, 16, 32, 128
+    q = torch.randn(1, T, HK, D, device=dev, dtype=torch.bfloat16)
+    k = torch.randn(1, T, HK, D, device=dev, dtype=torch.bfloat16)
+    v = torch.randn(1, T, HV, D, device=dev, dtype=torch.bfloat16)
+    g = torch.nn.functional.logsigmoid(torch.randn(1, T, HV, device=dev, dtype=torch.float32))
+    beta = torch.rand(1, T, HV, device=dev, dtype=torch.bfloat16).sigmoid()
+    h0 = torch.zeros(1, HV, D, D, device=dev, dtype=torch.float32)
+    cu = torch.tensor([0, T], device=dev, dtype=torch.int32)
+    ms = timed(lambda: fi_chunk_gated_delta_rule(q=q, k=k, v=v, g=g, beta=beta, initial_state=h0,
+                                                 output_final_state=True, cu_seqlens=cu))
+    ok(f"FlashInfer GDN (vLLM wrapper): T=2048 with initial_state -> {ms:.3f} ms")
 except Exception as e:
-    bad(f"fla gated_delta_rule: {e}  (check the argument order for your fla version)")
+    bad(f"FlashInfer GDN: {e}")
+
+try:
+    import vllm, flashinfer
+    ok(f"vllm {vllm.__version__}, flashinfer {flashinfer.__version__}")
+except Exception as e:
+    bad(f"vllm/flashinfer: {e}")
 
 try:
     import transformers; ok(f"transformers {transformers.__version__}")

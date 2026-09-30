@@ -1,0 +1,70 @@
+
+######## 2026-09-29_Qwen3-Next-80B-A3B-Instruct_tp2_gpu6  (clock_locked=True, gdn_backend=flashinfer, fa_version=3)
+rows with foreign GPU load: 0
+
+FA us/token (p50), rows = t, cols = c:
+c        64     65     128    129    256    512    1024   2048   4096   8192
+t                                                                           
+0       0.179  0.176  0.101  0.100  0.063  0.046  0.035  0.025  0.026  0.046
+4096    0.442  0.373  0.217  0.216  0.133  0.091  0.080  0.069  0.070  0.090
+16384   0.570  0.583  0.359  0.372  0.262  0.226  0.217  0.200  0.214  0.240
+32768   0.787  0.810  0.546  0.585  0.443  0.409  0.402  0.385  0.388  0.440
+65536   1.180  1.291  0.925  1.023  0.801  0.784  0.766  0.767  0.789  0.836
+131072  1.981  2.241  1.677  1.854  1.532  1.575  1.484  1.541  1.583  1.615
+262144  3.691  4.143  3.173  3.562  2.988  3.209  3.277  3.132  3.136  3.260
+
+GDN p50 spread across t at fixed c (key check: < 5%):
+      p50_min_ms  p50_max_ms  spread_pct
+c                                       
+64         0.049       0.049       0.307
+65         0.053       0.053       0.457
+128        0.053       0.053       0.285
+129        0.056       0.056       0.323
+256        0.058       0.059       0.671
+512        0.064       0.065       0.451
+1024       0.076       0.076       0.355
+2048       0.098       0.098       0.614
+4096       0.128       0.128       0.336
+8192       0.176       0.177       0.290
+-> worst spread 0.7%  => PASS (max-min, sensitive to one outlier)
+-> systematic trend, t>=128K vs t<=16K: worst 0.2%  => PASS
+   outliers (>10% off the median across t): none
+
+GDN fit p50 = a + b*ceil(c/64):  a = 54.9 us (fixed per call), b = 1.01 us per 64-token chunk, R^2 = 0.977
+   a dominates up to c ~ 3490 tokens (where a = b*ceil(c/64))
+
+######## 2026-09-29_Qwen3.8-27B_tp1_gpu6  (clock_locked=True, gdn_backend=flashinfer, fa_version=3)
+rows with foreign GPU load: 0
+
+FA us/token (p50), rows = t, cols = c:
+c         64      65      128     129     256     512     1024    2048    4096    8192
+t                                                                                     
+0        0.191   0.188   0.114   0.113   0.070   0.090   0.035   0.049   0.081   0.154
+4096     0.474   0.489   0.314   0.455   0.350   0.267   0.216   0.194   0.228   0.308
+16384    0.895   0.986   0.743   1.280   1.040   0.779   0.749   0.647   0.699   0.784
+32768    1.537   1.735   1.342   2.360   1.950   1.506   1.475   1.264   1.321   1.392
+65536    2.735   3.139   2.498   4.520   3.763   2.904   2.932   2.541   2.588   2.654
+131072   5.467   6.004   5.180   8.835   7.434   5.918   5.858   5.005   5.096   5.230
+262144  10.710  13.036  10.348  17.711  14.722  11.932  11.909  10.052  10.217  10.305
+
+GDN p50 spread across t at fixed c (key check: < 5%):
+      p50_min_ms  p50_max_ms  spread_pct
+c                                       
+64         0.052       0.053       1.508
+65         0.056       0.057       1.108
+128        0.056       0.058       2.360
+129        0.064       0.065       1.040
+256        0.068       0.068       0.441
+512        0.098       0.098       0.256
+1024       0.099       0.100       0.231
+2048       0.141       0.142       0.418
+4096       0.226       0.227       0.270
+8192       0.395       0.397       0.446
+-> worst spread 2.4%  => PASS (max-min, sensitive to one outlier)
+-> systematic trend, t>=128K vs t<=16K: worst 0.3%  => PASS
+   outliers (>10% off the median across t): none
+
+GDN fit p50 = a + b*ceil(c/64):  a = 57.0 us (fixed per call), b = 2.65 us per 64-token chunk, R^2 = 0.995
+   a dominates up to c ~ 1376 tokens (where a = b*ceil(c/64))
+
+figure -> figures/step01_fig1.png

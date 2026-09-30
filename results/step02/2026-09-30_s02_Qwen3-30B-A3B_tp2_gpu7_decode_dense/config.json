@@ -1,0 +1,78 @@
+{
+  "date": "2026-09-30T01:41:08",
+  "model_config": "results/step00/configs/Qwen_Qwen3-30B-A3B.json",
+  "shapes": {
+    "model_type": "qwen3_moe",
+    "tp": 2,
+    "attn": {
+      "layers": 48,
+      "heads": 16,
+      "kv_heads": 2,
+      "head_dim": 128,
+      "kv_block": 16
+    },
+    "gdn": null,
+    "dense_attn": {
+      "layers": 48,
+      "heads": 16,
+      "kv_heads": 2,
+      "head_dim": 128,
+      "kv_block": 16,
+      "hidden": 2048,
+      "gated": false
+    },
+    "moe": {
+      "layers": 48,
+      "hidden": 2048,
+      "experts": 128,
+      "topk": 8,
+      "inter": 384,
+      "shared_inter": 0,
+      "renormalize": 1
+    }
+  },
+  "dtype": "bfloat16",
+  "gpu": [
+    {
+      "index": "7",
+      "name": "NVIDIA H200",
+      "memory.used": "625",
+      "memory.total": "143771",
+      "utilization.gpu": "0",
+      "clocks.sm": "1980",
+      "clocks.max.sm": "1980",
+      "temperature.gpu": "35"
+    }
+  ],
+  "cuda_visible_devices": "7",
+  "python": "3.12.14",
+  "torch": "2.13.0+cu130",
+  "cuda": "13.0",
+  "vllm": "0.30.0",
+  "flashinfer": "0.6.18.post1",
+  "repo_commit": "4fefde7cfbf31e6d373ca0fd5216d4392ce44296",
+  "repo_dirty": true,
+  "cmd": "bench/op_cost.py --clock-locked --config results/step00/configs/Qwen_Qwen3-30B-A3B.json --tp 2 --op dense_attn --c 1,8,16,32,64 --tag s02_Qwen3-30B-A3B_tp2_gpu7_decode_dense",
+  "clock_locked": true,
+  "gdn_state": "prefill",
+  "gdn_backend": "flashinfer",
+  "fa_version": 3,
+  "kv_layout": "paged",
+  "lock_mhz": "1980",
+  "routing": null,
+  "decode_batch": "8,32,64,128",
+  "warmup": 10,
+  "iters": 30,
+  "gpu_after": [
+    {
+      "index": "7",
+      "name": "NVIDIA H200",
+      "memory.used": "1433",
+      "memory.total": "143771",
+      "utilization.gpu": "99",
+      "clocks.sm": "1980",
+      "clocks.max.sm": "1980",
+      "temperature.gpu": "36"
+    }
+  ]
+}

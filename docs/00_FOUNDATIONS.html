@@ -261,7 +261,7 @@ window.MathJax = {
     <text x="180" y="110" fill="var(--moe)">MoE (thuế đọc expert / c)</text>
   </g>
 </svg>
-<figcaption>Hình dạng chi phí kỳ vọng, sẽ được thay bằng số đo thật ở tuần 1–2. Full attention: phẳng theo c, dâng theo t. Sparse attention: cũng dâng theo t nhưng chậm hơn một bậc. GDN và MoE: giảm theo c, không đổi theo t. Đây chính là Hình 1 của paper.</figcaption>
+<figcaption>Hình dạng chi phí kỳ vọng, sẽ được thay bằng số đo thật ở bước 1–2. Full attention: phẳng theo c, dâng theo t. Sparse attention: cũng dâng theo t nhưng chậm hơn một bậc. GDN và MoE: giảm theo c, không đổi theo t. Đây chính là Hình 1 của paper.</figcaption>
 </figure>
 
 <h3>Bố cục của các model mục tiêu</h3>
@@ -274,7 +274,7 @@ window.MathJax = {
 <tr><td>Qwen3-30B-A3B</td><td>Chỉ full attention</td><td>128 expert, top-8</td><td>32K–128K</td><td>1 × H200</td></tr>
 </table></div>
 <p>Số liệu lấy từ model card trên Hugging Face ngày 17/09/2026, kiểm tra lại <code>config.json</code> khi tải. Qwen3.8-27B tách sạch câu hỏi SSM-vs-attention trong cùng họ với anchor. Qwen3-30B-A3B đối chiếu với Layered Prefill.</p>
-<div class="why"><b>Vì sao quan trọng với paper</b>Bốn loại operator, ba <i>loại</i> ràng buộc chunk khác nhau. Một chunk chung không thể vừa tất cả, và số loại operator trong một model chỉ tăng. Xu hướng sparse attention làm yếu cơ chế \(1/t\) của full attention, nhưng thêm một ràng buộc bộ nhớ mới mà GDN và MoE không có. Rủi ro thật: ở 32K–128K trên model sparse, attention có thể rẻ tới mức chunk đồng nhất không còn bị kẹp. Điều này phải đo ở tuần 1–2 trên Qwen3.8-Flash-Next, không đoán.</div>
+<div class="why"><b>Vì sao quan trọng với paper</b>Bốn loại operator, ba <i>loại</i> ràng buộc chunk khác nhau. Một chunk chung không thể vừa tất cả, và số loại operator trong một model chỉ tăng. Xu hướng sparse attention làm yếu cơ chế \(1/t\) của full attention, nhưng thêm một ràng buộc bộ nhớ mới mà GDN và MoE không có. Rủi ro thật: ở 32K–128K trên model sparse, attention có thể rẻ tới mức chunk đồng nhất không còn bị kẹp. Điều này phải đo ở bước 1–2 trên Qwen3.8-Flash-Next, không đoán.</div>
 
 <h3>Ba loại ràng buộc, một bảng để nhớ</h3>
 <div class="tbl"><table>
@@ -333,7 +333,7 @@ window.MathJax = {
 <div class="eyebrow">Bộ tính chunk</div>
 <h3 style="margin-top:.3rem">Tự nghiệm luận điểm với hằng số minh hoạ</h3>
 <p style="font-size:.95em;background:var(--note);color:var(--note-ink);border-radius:6px;padding:.6rem .8rem"><b>Lưu ý:</b> bộ tính này dùng cost model gốc của proposal — chỉ có chunk theo operator, <b>chưa có pipeline theo chiều sâu</b>. Mục 9 cho thấy nó bỏ sót cơ chế mang phần lớn gain. Giữ lại để cảm nhận ba loại ràng buộc, đừng dùng để ước lượng gain.</p>
-<p style="font-size:.95em;color:var(--muted)">Hằng số dưới đây là giá trị minh hoạ cùng bậc với H200, không phải số đo. Tuần 1–2 sẽ thay bằng số thật. Kéo t lên và xem \(c^{*}_{\mathrm{FA}}\) co lại trong khi \(c^{*}_{\mathrm{GDN}}\) đứng yên, và gain tăng theo.</p>
+<p style="font-size:.95em;color:var(--muted)">Hằng số dưới đây là giá trị minh hoạ cùng bậc với H200, không phải số đo. Bước 1–2 sẽ thay bằng số thật. Kéo t lên và xem \(c^{*}_{\mathrm{FA}}\) co lại trong khi \(c^{*}_{\mathrm{GDN}}\) đứng yên, và gain tăng theo.</p>
 <div class="grid">
   <label>Loại attention: <span id="v_mode"></span><select id="in_mode" style="display:block;width:100%;margin-top:.2rem"><option value="full">Full attention (Qwen3-Next)</option><option value="sparse">Sparse + indexer (Qwen3.8-Flash-Next)</option></select></label>
   <label>Context t (token): <span id="v_t"></span><input id="in_t" type="range" min="12" max="20" step="0.1" value="15"></label>
@@ -362,7 +362,7 @@ window.MathJax = {
   <div class="m">\(\displaystyle \mathrm{cost}_{\mathrm{FA}}(c,t) + \max_{g}\ \mathrm{cost}_{g}(kc) \le P\)</div><div class="n">đồng thời: ràng buộc đỉnh mỗi iteration, nhờ so le</div>
   <div class="m">\(\displaystyle \mathrm{Gain}(t) = \frac{r_d(t)}{r_u(t)}\)</div><div class="n">lưu ý mục 9: mô hình này chưa có pipeline theo chiều sâu</div>
 </div>
-<p>Ba hàm cost lấy từ bảng đo tuần 1–2. Toàn bộ mục 2 của kế hoạch (thí nghiệm 1) chỉ là đo ba hàm này rồi tính hai dòng trên.</p>
+<p>Ba hàm cost lấy từ bảng đo bước 1–2. Toàn bộ mục 2 của kế hoạch (thí nghiệm 1) chỉ là đo ba hàm này rồi tính hai dòng trên.</p>
 <div class="why"><b>Vì sao quan trọng với paper</b>Nếu Gain(t) ≥ 1.25 ở t ≥ 32K trên hai model, giả thuyết sống và bạn đi tiếp. Nếu không, bạn biết sau hai tuần, chưa viết một dòng scheduler nào.</div>
 
 <h2 id="s6">6. Đọc gì, đọc thế nào</h2>
@@ -378,7 +378,7 @@ window.MathJax = {
 <li><b>Đọc lướt</b>: Medha (2409.17264), Niyama (2503.22562), POD-Attention (2410.18038), DUET (2603.15530), FlowPrefill (2602.16603), PrefillOnly §4.2 (2505.07203), blog vLLM về Qwen3-Next. Mỗi bài 3 dòng: họ làm gì, khác HyPrefill ở đâu.</li>
 </ol>
 
-<h2 id="s7">7. Tự kiểm tra trước khi sang tuần 1</h2>
+<h2 id="s7">7. Tự kiểm tra trước khi sang bước 1</h2>
 <details><summary>1. Vì sao decode batch nhỏ là memory-bound còn prefill là compute-bound?</summary><p>Cường độ số học của một matmul trọng số ≈ số token n. Decode n nhỏ nên dưới điểm gãy ~200 FLOP/byte của H200: GPU chờ đọc trọng số. Prefill n hàng nghìn nên vượt xa điểm gãy: GPU bận tính.</p></details>
 <details><summary>2. TBT và TTFT thay đổi thế nào khi tăng chunk size?</summary><p>TBT ≈ \(T_{\text{iter}}\) = D + \(T_{\text{chunk}}(c)\) tăng. TTFT ≈ (L/c)·\(T_{\text{iter}}\) giảm vì ít iteration hơn và mỗi chunk khấu hao overhead tốt hơn.</p></details>
 <details><summary>3. Vì sao chi phí mỗi token của attention gần như không đổi theo c nhưng tăng theo t?</summary><p>Mỗi token mới phải nhìn t token cũ, nên chi phí mỗi token ≈ α·(t + c/2). Với t ≫ c, số hạng t chi phối.</p></details>
@@ -390,7 +390,7 @@ window.MathJax = {
 <details><summary>9. Điều gì làm COREY thất bại, và HyPrefill né bằng cách nào?</summary><p>COREY ước lượng entropy lúc chạy để chọn chunk; chi phí ước lượng 0.7–4.6% lớn hơn lợi ích. HyPrefill dùng bảng cost đo offline và chỉ tra bảng theo (operator, t).</p></details>
 <details><summary>10. Kết quả nào sau hai tuần khiến bạn dừng dự án?</summary><p>Xem cổng G1 mới ở mục 9.11: G1a (pipeline so với Sarathi ≥ 1.20×), G1b (HyPrefill so với Layered ≥ 1.25× ở ít nhất một chế độ), G1c (kernel indexer có cấp phát buffer \(c\cdot t\) theo mỗi lần gọi không). Trượt thì chuyển phương án lui số một là bài đo độ trung thực FP4.</p></details>
 <details><summary>11. Sparse attention có indexer làm luận điểm yếu đi ở đâu và mạnh lên ở đâu?</summary><p>Yếu: attention thật chỉ trên top-k nên hệ số theo t giảm khoảng một bậc, ngưỡng kẹp dịch từ ~16K lên ~256K; ở 32K–128K chunk đồng nhất có thể không còn bị attention kẹp. Mạnh: buffer logits của indexer là ràng buộc bộ nhớ \(c\cdot t\) mới, GDN và MoE không có, nên "min over operators" chuyển từ thời gian sang bộ nhớ thay vì biến mất.</p></details>
-<details><summary>12. Thứ tự phương án lui hiện tại là gì, và vì sao?</summary><p>Một: bài đo độ trung thực FP4 trên Hopper (bản B), vì dữ liệu có sẵn từ tuần 2. Hai: VeriPrefill, điểm cao nhưng phải dựng từ đầu và mất giá trị khi attention thưa. Ba: StateGraph, hợp xu hướng sparse nhất nhưng quá chậm cho tháng 1, để làm sau HyPrefill.</p></details>
+<details><summary>12. Thứ tự phương án lui hiện tại là gì, và vì sao?</summary><p>Một: bài đo độ trung thực FP4 trên Hopper (bản B), vì dữ liệu có sẵn từ bước 2. Hai: VeriPrefill, điểm cao nhưng phải dựng từ đầu và mất giá trị khi attention thưa. Ba: StateGraph, hợp xu hướng sparse nhất nhưng quá chậm cho tháng 1, để làm sau HyPrefill.</p></details>
 
 <h2 id="s8">8. Bài giảng từng paper</h2>
 <p>Chín bài quan trọng nhất, mỗi bài gồm: vấn đề, cơ chế với công thức gốc, số liệu, điểm yếu, và điều HyPrefill lấy hoặc phải trả lời. Ghi chú đầy đủ hơn nằm trong thư mục <code>lecture_notes/</code>. Số liệu trích trực tiếp từ bản HTML trên arXiv.</p>
@@ -423,7 +423,7 @@ window.MathJax = {
 </div>
 <p><b>Số liệu.</b> 32 GPU A100-80GB, OPT-13B/66B/175B. Chatbot tăng 2.0–4.6× request rate so với vLLM ở 90% SLO; OPT-175B tăng tới 7.4× so với DeepSpeed-MII; Summarization chịu được SLO chặt hơn 12.6×. Ablation vLLM++ (vLLM với parallelism tối ưu) không cải thiện gì, chứng tỏ vấn đề là colocated chứ không phải cấu hình song song.</p>
 <p><b>Điểm yếu.</b> Tác giả thừa nhận với ít GPU thì "simpler non-disaggregated systems may reduce deployment complexity", và với workload offline chunked prefill có thể tốt hơn. Placement là tìm kiếm offline cho một workload giả định trước.</p>
-<div class="why"><b>Rút ra cho HyPrefill</b>Dùng <b>goodput</b> làm metric đầu bảng. Mượn khuôn "liệt kê cấu hình + simulator + binary search + báo sai số simulator" cho tuần 3–4. Mượn lập luận O(N²) của chunked prefill để nói ngược: GDN có state cố định nên không chịu phạt O(N²) như attention, đó là lý do định lượng để cho GDN chunk lớn hơn. Và phải trả lời câu "sao không PD cho xong": HyPrefill áp dụng ở mọi GPU chạy đồng thời hai pha, gồm cả node decode của hệ PD khi có append-prefill.</div>
+<div class="why"><b>Rút ra cho HyPrefill</b>Dùng <b>goodput</b> làm metric đầu bảng. Mượn khuôn "liệt kê cấu hình + simulator + binary search + báo sai số simulator" cho bước 3–4. Mượn lập luận O(N²) của chunked prefill để nói ngược: GDN có state cố định nên không chịu phạt O(N²) như attention, đó là lý do định lượng để cho GDN chunk lớn hơn. Và phải trả lời câu "sao không PD cho xong": HyPrefill áp dụng ở mọi GPU chạy đồng thời hai pha, gồm cả node decode của hệ PD khi có append-prefill.</div>
 <details><summary>Tự kiểm tra: vì sao goodput hơn throughput thô?</summary><p>Throughput thô có thể cao nhưng vi phạm SLO cho phần lớn request. Goodput đo rate tối đa mà vẫn giữ X% request đạt SLO trên mỗi GPU, đúng là thứ người vận hành trả tiền để có.</p></details>
 
 <!-- ============ 8.3 Layered Prefill ============ -->
@@ -561,12 +561,12 @@ window.MathJax = {
 
 
 <h2 id="s9">9. Giải pháp HyPrefill — đọc proposal từ đầu đến cuối</h2>
-<p>Phần này giải thích proposal trong <code>PROPOSAL.md</code>: bài toán, cơ chế, vì sao đúng, áp dụng ở đâu, so với ai, và cái gì có thể giết nó. Khi viết phần này, tôi chạy một mô phỏng dòng token qua đúng cấu trúc layer của Qwen3-Next để kiểm từng khẳng định. Mô phỏng cho thấy proposal <b>gán sai nguồn gốc của gain</b>. Mục 9.2 đến 9.6 giải thích bức tranh đã sửa; bạn nên đọc kỹ phần đó trước khi bắt đầu tuần 1, vì nó thay đổi cổng G1.</p>
+<p>Phần này giải thích proposal trong <code>PROPOSAL.md</code>: bài toán, cơ chế, vì sao đúng, áp dụng ở đâu, so với ai, và cái gì có thể giết nó. Khi viết phần này, tôi chạy một mô phỏng dòng token qua đúng cấu trúc layer của Qwen3-Next để kiểm từng khẳng định. Mô phỏng cho thấy proposal <b>gán sai nguồn gốc của gain</b>. Mục 9.2 đến 9.6 giải thích bức tranh đã sửa; bạn nên đọc kỹ phần đó trước khi bắt đầu bước 1, vì nó thay đổi cổng G1.</p>
 
 <div class="why"><b>Đọc mục này như giả thuyết, chưa phải kết luận</b>
 <p style="margin:.3rem 0">Mô phỏng ở mục 9.5 là mô hình đồ chơi: hằng số minh hoạ, chi phí giả định tuyến tính, bỏ qua chi phí copy buffer và đồng bộ, coi decode là hằng số, và "Layered" là pipeline lý tưởng chứ không phải thuật toán thật. <b>Đừng tin độ lớn của bất kỳ con số nào ở đây.</b></p>
 <p style="margin:.3rem 0">Phần đáng tin hơn là lập luận không phụ thuộc hằng số: budget TBT là ràng buộc mỗi iteration nên pipeline gỡ được; buffer indexer là ràng buộc mỗi lần gọi nên pipeline không gỡ được. Và Layered Prefill tồn tại, nên đóng góp riêng của HyPrefill phải được đo so với nó.</p>
-<p style="margin:.3rem 0">Hệ quả thực tế duy nhất: tuần 2 đo thêm hai thứ (tách gain pipeline khỏi gain chunk theo operator; kiểm kernel indexer), tốn thêm khoảng một đến hai ngày. Số đo tuần 2 mới quyết định. Ngày 24/09 đã cập nhật cổng G1 (tách G1a, G1b, G1c) trong <code>PROPOSAL.md</code>, <code>README.md</code> và <code>weeks/WEEK_02.md</code>; claim trung tâm và abstract chỉ viết lại sau khi có số đo.</p></div>
+<p style="margin:.3rem 0">Hệ quả thực tế duy nhất: bước 2 đo thêm hai thứ (tách gain pipeline khỏi gain chunk theo operator; kiểm kernel indexer), tốn thêm khoảng một đến hai ngày. Số đo bước 2 mới quyết định. Ngày 24/09 đã cập nhật cổng G1 (tách G1a, G1b, G1c) trong <code>PROPOSAL.md</code>, <code>README.md</code> và <code>plan/02_COST_MOE_ORACLE.md</code>; claim trung tâm và abstract chỉ viết lại sau khi có số đo.</p></div>
 
 <!-- ======================= 9.1 ======================= -->
 <h3 id="q1">9.1 Bài toán trong một đoạn</h3>
@@ -707,7 +707,7 @@ window.MathJax = {
 
 <!-- ======================= 9.5 ======================= -->
 <h3 id="q5">9.5 Kết quả mô phỏng</h3>
-<p>Mô phỏng dòng token qua 96 sublayer của Qwen3-Next (12 × [G, M, G, M, G, M, A, M]), budget P = 40 ms, hằng số minh hoạ giống bộ tính ở mục 5. Mỗi sublayer được phép gọi nhiều lần trong một iteration. Đơn vị là <b>số iteration để prefill xong Δ token mới</b>, ít hơn là tốt hơn. So ba chính sách: <b>Sarathi</b> (chunk đi hết chiều sâu mỗi iteration), <b>Layered</b> (pipeline, k = 1), <b>HyPrefill</b> (pipeline, k ≥ 2). Mã nguồn ở <code>sim/hyprefill_sim.js</code>, chạy lại với số đo thật ở tuần 2.</p>
+<p>Mô phỏng dòng token qua 96 sublayer của Qwen3-Next (12 × [G, M, G, M, G, M, A, M]), budget P = 40 ms, hằng số minh hoạ giống bộ tính ở mục 5. Mỗi sublayer được phép gọi nhiều lần trong một iteration. Đơn vị là <b>số iteration để prefill xong Δ token mới</b>, ít hơn là tốt hơn. So ba chính sách: <b>Sarathi</b> (chunk đi hết chiều sâu mỗi iteration), <b>Layered</b> (pipeline, k = 1), <b>HyPrefill</b> (pipeline, k ≥ 2). Mã nguồn ở <code>sim/hyprefill_sim.js</code>, chạy lại với số đo thật ở bước 2.</p>
 
 <p><b>Chế độ bị giới hạn bởi thời gian</b> (full attention, Qwen3-Next):</p>
 <div class="tbl"><table>
@@ -734,7 +734,7 @@ window.MathJax = {
 
 <div class="why"><b>Đọc hai bảng này thế nào</b>
 <p style="margin:.3rem 0">Cột giữa là <b>đóng góp riêng của HyPrefill</b>, sau khi đã trừ phần của Layered Prefill. Ở chế độ thời gian nó chỉ 1.03–1.10×. Ở chế độ bộ nhớ nó 1.60–2.58×. Nếu bài chỉ so với Sarathi thì sẽ khai 1.5× cho HyPrefill trong khi 1.4× trong số đó là của Layered Prefill, và reviewer đọc Layered Prefill sẽ bắt ngay.</p>
-<p style="margin:.3rem 0">Hằng số là minh hoạ. Cấu trúc của kết luận (pipeline giải thời gian, không giải bộ nhớ) là lập luận logic nên bền; độ lớn của từng con số thì phải chờ số đo tuần 1–2.</p></div>
+<p style="margin:.3rem 0">Hằng số là minh hoạ. Cấu trúc của kết luận (pipeline giải thời gian, không giải bộ nhớ) là lập luận logic nên bền; độ lớn của từng con số thì phải chờ số đo bước 1–2.</p></div>
 
 <!-- ======================= 9.6 ======================= -->
 <h3 id="q6">9.6 Điều này thay đổi gì trong proposal</h3>
@@ -743,12 +743,12 @@ window.MathJax = {
 <li><b>Claim trung tâm viết lại.</b> Không còn là "các operator cần chunk khác nhau" một cách chung chung, mà là: <i>trong chế độ bị giới hạn bởi thời gian, pipeline theo chiều sâu mang phần lớn gain; trong chế độ bị giới hạn bởi bộ nhớ, pipeline không đủ và chunk theo operator trở thành cơ chế chính.</i></li>
 <li><b>Bản đồ regime (Hình 3) giờ có nội dung thật.</b> Hai cơ chế, mỗi cái thống trị một vùng. Đây là hình mạnh hơn nhiều so với "gain tăng theo context".</li>
 <li><b>Xu hướng sparse attention đổi vai.</b> Trước đây tôi coi sparse attention là mối đe doạ vì nó làm attention rẻ đi. Giờ thấy chính sparse attention tạo ra chế độ bộ nhớ, nơi ý tưởng riêng của HyPrefill quan trọng nhất. Qwen3.8-Flash-Next và GLM-5.3-Flash chuyển từ "kiểm tra độ bền" thành <b>model headline</b>.</li>
-<li><b>Rủi ro độ bền mới, phải kiểm ở tuần 2.</b> Chế độ bộ nhớ chỉ tồn tại nếu kernel indexer thật sự cấp phát buffer \(c\cdot t\) theo mỗi lần gọi. Nếu kernel chuyển sang streaming top-k với workspace cố định, ràng buộc bộ nhớ biến mất và HyPrefill co lại thành "Layered Prefill cho hybrid cộng 0–10%". vLLM PR #56500 ("Reuse bounded prefill logits workspace") cho thấy upstream đang đi đúng hướng đó.</li>
+<li><b>Rủi ro độ bền mới, phải kiểm ở bước 2.</b> Chế độ bộ nhớ chỉ tồn tại nếu kernel indexer thật sự cấp phát buffer \(c\cdot t\) theo mỗi lần gọi. Nếu kernel chuyển sang streaming top-k với workspace cố định, ràng buộc bộ nhớ biến mất và HyPrefill co lại thành "Layered Prefill cho hybrid cộng 0–10%". vLLM PR #56500 ("Reuse bounded prefill logits workspace") cho thấy upstream đang đi đúng hướng đó.</li>
 </ol>
 
 <!-- ======================= 9.7 ======================= -->
 <h3 id="q7">9.7 Cơ chế chi tiết trên Qwen3-Next</h3>
-<p><b>Operator groups.</b> Qwen3-Next có 48 layer, mỗi layer là một mixer rồi một MoE, tổng 96 sublayer: 12 attention mixer, 36 GDN mixer, 48 MoE (theo model card; xác minh bằng <code>config.json</code> ở tuần 0). Với chunk theo operator, <b>chỉ 12 trên 96 sublayer chạy chunk nhỏ</b>, 84 sublayer còn lại chạy \(k\cdot c\).</p>
+<p><b>Operator groups.</b> Qwen3-Next có 48 layer, mỗi layer là một mixer rồi một MoE, tổng 96 sublayer: 12 attention mixer, 36 GDN mixer, 48 MoE (theo model card; xác minh bằng <code>config.json</code> ở bước 0). Với chunk theo operator, <b>chỉ 12 trên 96 sublayer chạy chunk nhỏ</b>, 84 sublayer còn lại chạy \(k\cdot c\).</p>
 <p><b>Buffer ở chỗ đổi nhịp.</b> Có hai loại điểm đổi nhịp, mỗi loại 12 chỗ. Sau mỗi attention mixer, trước MoE của nó: buffer <i>gom</i> k chunk c thành một batch \(k\cdot c\). Trước mỗi attention mixer: hàng đợi <i>chia</i> batch \(k\cdot c\) thành k chunk c. Mỗi buffer tối đa \(k\cdot c\)·\(d_{\text{model}}\)·2 byte; với \(d_{\text{model}}\) = 2048 và \(k\cdot c\) = 2048 là 8 MB, 24 chỗ khoảng 200 MB, nhỏ so với 141 GB của H200.</p>
 <p><b>Tiết kiệm được gì, chính xác.</b> Với chi phí GDN affine \(a_G\) + \(b_G\)·c và MoE xấp xỉ \(W_{\text{read}}\) + η·c khi đã chạm gần hết expert:</p>
 <div class="eq">
@@ -758,8 +758,8 @@ window.MathJax = {
   <div class="t">Chi phí attention: không đổi.</div>
 </div>
 <p>Vậy HyPrefill không làm attention rẻ đi. Nó xoá các chi phí cố định dư thừa của GDN và MoE. Đó là lý do nó chỉ đáng kể khi các chi phí cố định đó bị nhân lên nhiều lần, tức khi attention buộc phải gọi nhiều lần nhỏ.</p>
-<p><b>Stagger.</b> 84 sublayer chạy \(k\cdot c\) không được bắn cùng một iteration, nếu không iteration đó vượt B. Trong pipeline điều này tự nhiên xảy ra: các sublayer khác nhau xử lý các batch khác nhau ở các độ sâu khác nhau. Lịch cụ thể là bài toán thiết kế của tuần 5.</p>
-<p><b>Một chỗ proposal viết quá gọn.</b> Proposal mô tả "nhóm phi-attention gom k chunk rồi chạy một lần" như thể các nhóm độc lập. Thực tế chúng nối tiếp theo chiều sâu, nên cơ chế thật là một <b>pipeline đa nhịp</b>: token chờ gom batch ở mỗi điểm đổi nhịp. Mô phỏng cho thấy độ trễ lấp đầy pipeline không giết được gain kể cả với Δ = 8K, nhưng design doc tuần 5 phải mô tả đúng như vậy.</p>
+<p><b>Stagger.</b> 84 sublayer chạy \(k\cdot c\) không được bắn cùng một iteration, nếu không iteration đó vượt B. Trong pipeline điều này tự nhiên xảy ra: các sublayer khác nhau xử lý các batch khác nhau ở các độ sâu khác nhau. Lịch cụ thể là bài toán thiết kế của bước 5.</p>
+<p><b>Một chỗ proposal viết quá gọn.</b> Proposal mô tả "nhóm phi-attention gom k chunk rồi chạy một lần" như thể các nhóm độc lập. Thực tế chúng nối tiếp theo chiều sâu, nên cơ chế thật là một <b>pipeline đa nhịp</b>: token chờ gom batch ở mỗi điểm đổi nhịp. Mô phỏng cho thấy độ trễ lấp đầy pipeline không giết được gain kể cả với Δ = 8K, nhưng design doc bước 5 phải mô tả đúng như vậy.</p>
 
 <!-- ======================= 9.8 ======================= -->
 <h3 id="q8">9.8 Tính đúng đắn — điểm bán cho ICML</h3>
@@ -770,7 +770,7 @@ window.MathJax = {
 <li><b>Attention:</b> causal với đầy đủ KV của các token trước, phép toán không đổi.</li>
 <li><b>Pipeline theo chiều sâu:</b> mỗi token vẫn đi qua các layer theo đúng thứ tự.</li>
 </ul>
-<p>Output giống baseline tới sai số dấu phẩy động. Kiểm bằng 200 prompt greedy ở tuần 13. Ở venue hệ thống đây là mục phụ; ở ICML đây là điểm mạnh nhất, vì câu hỏi đầu tiên của reviewer ML là "có hại chất lượng không", và HyPrefill trả lời được bằng cấu trúc chứ không bằng thực nghiệm.</p>
+<p>Output giống baseline tới sai số dấu phẩy động. Kiểm bằng 200 prompt greedy ở bước 13. Ở venue hệ thống đây là mục phụ; ở ICML đây là điểm mạnh nhất, vì câu hỏi đầu tiên của reviewer ML là "có hại chất lượng không", và HyPrefill trả lời được bằng cấu trúc chứ không bằng thực nghiệm.</p>
 
 <!-- ======================= 9.9 ======================= -->
 <h3 id="q9">9.9 Áp dụng ở đâu</h3>
@@ -805,24 +805,24 @@ window.MathJax = {
 <tr><td><b>G1b</b></td><td>HyPrefill / Layered, ở ít nhất một chế độ thực tế</td><td>≥ 1.25×</td><td>Nếu &lt; 1.10× ở mọi chế độ: bài co lại thành "Layered Prefill cho hybrid", nhỏ hơn nhiều; cân nhắc phương án lui</td></tr>
 <tr><td><b>G1c</b></td><td>Kernel indexer thật trên Qwen3.8-Flash-Next hoặc GLM-5.3-Flash có cấp phát buffer \(c\cdot t\) theo mỗi lần gọi không, hay đã streaming với workspace cố định?</td><td>Có buffer \(c\cdot t\)</td><td>Chế độ bộ nhớ không tồn tại trong thực tế → G1b gần như chắc chắn trượt</td></tr>
 </table></div>
-<p>G1c rẻ nhất và quyết định nhất: một buổi đọc mã kernel và đo <code>torch.cuda.max_memory_allocated()</code> theo c và t. Làm nó đầu tiên trong tuần 2.</p>
+<p>G1c rẻ nhất và quyết định nhất: một buổi đọc mã kernel và đo <code>torch.cuda.max_memory_allocated()</code> theo c và t. Làm nó đầu tiên trong bước 2.</p>
 
 <!-- ======================= 9.12 ======================= -->
 <h3 id="q12">9.12 Rủi ro, xếp theo mức nguy hiểm</h3>
 <div class="tbl"><table>
 <tr><th>Rủi ro</th><th>Đỡ</th></tr>
-<tr><td><b>Kernel indexer chuyển sang streaming, chế độ bộ nhớ biến mất</b></td><td>G1c đo ngay tuần 2. Nếu biến mất: viết bài "Layered Prefill cho hybrid" cho venue nhỏ hơn, hoặc chuyển phương án lui</td></tr>
+<tr><td><b>Kernel indexer chuyển sang streaming, chế độ bộ nhớ biến mất</b></td><td>G1c đo ngay bước 2. Nếu biến mất: viết bài "Layered Prefill cho hybrid" cho venue nhỏ hơn, hoặc chuyển phương án lui</td></tr>
 <tr><td><b>Reviewer gán gain cho Layered Prefill</b></td><td>Headline luôn là HyPrefill / Layered; cài Layered cho hybrid làm baseline</td></tr>
-<tr><td>Engineering nặng hơn dự kiến (pipeline đa nhịp khó hơn Layered)</td><td>Prototype trên fork layered-prefill; cổng cứng tuần 8</td></tr>
-<tr><td>Chi phí cố định của MoE đã được decode chia sẻ trên node decode bận</td><td>Đo riêng ở tuần 2: expert chạm bởi decode so với bởi chunk prefill</td></tr>
-<tr><td>Overhead buffer ăn mất gain (kiểu COREY)</td><td>Đo ở tuần 6; buffer chỉ 24 chỗ, ~200 MB</td></tr>
+<tr><td>Engineering nặng hơn dự kiến (pipeline đa nhịp khó hơn Layered)</td><td>Prototype trên fork layered-prefill; cổng cứng bước 8</td></tr>
+<tr><td>Chi phí cố định của MoE đã được decode chia sẻ trên node decode bận</td><td>Đo riêng ở bước 2: expert chạm bởi decode so với bởi chunk prefill</td></tr>
+<tr><td>Overhead buffer ăn mất gain (kiểu COREY)</td><td>Đo ở bước 6; buffer chỉ 24 chỗ, ~200 MB</td></tr>
 </table></div>
-<p>Dòng thứ tư là một lo ngại tôi chưa nêu trước đây. Trên node decode có batch decode lớn, lớp MoE đã đọc gần hết trọng số expert cho decode rồi, nên thêm chunk prefill vào không tốn thêm nhiều lần đọc. Khi đó phần tiết kiệm \(W_{\text{read}}\) của HyPrefill co lại, chỉ còn phần launch của GDN. Layered Prefill đo được tiết kiệm 39% trên prompt dài nhưng chỉ 12% trên prompt ngắn, phù hợp với lo ngại này. Phải đo ở tuần 2 bằng cách so tập expert bị chạm bởi decode với tập bị chạm bởi chunk prefill.</p>
+<p>Dòng thứ tư là một lo ngại tôi chưa nêu trước đây. Trên node decode có batch decode lớn, lớp MoE đã đọc gần hết trọng số expert cho decode rồi, nên thêm chunk prefill vào không tốn thêm nhiều lần đọc. Khi đó phần tiết kiệm \(W_{\text{read}}\) của HyPrefill co lại, chỉ còn phần launch của GDN. Layered Prefill đo được tiết kiệm 39% trên prompt dài nhưng chỉ 12% trên prompt ngắn, phù hợp với lo ngại này. Phải đo ở bước 2 bằng cách so tập expert bị chạm bởi decode với tập bị chạm bởi chunk prefill.</p>
 
 <!-- ======================= 9.13 ======================= -->
 <h3 id="q13">9.13 Venue và phương án lui</h3>
-<p><b>ICML 2027</b>, hạn khoảng 28/01/2027. Tiền lệ đã xác minh: PPD (arXiv 2603.13358) "Accepted at ICML 2026", cùng họ bài lập lịch prefill nhiều lượt. MLSys bị loại vì không có trong danh sách xếp hạng. Bốn điều chỉnh khi viết cho ICML nằm ở PROPOSAL §8.1; quan trọng nhất là mở bài bằng tính đúng đắn (mục 9.8). Nếu cổng cứng tuần 8 trượt, nộp SIGMETRICS ngày 11/01 bản đo lường; nếu ICML từ chối, nộp lại NeurIPS tháng 5.</p>
-<p><b>Phương án lui số một</b> là bài đo độ trung thực của checkpoint FP4 trên phần cứng không hỗ trợ native (bản B, <code>docs/04_REVIEW_fp4_hopper_fallback.md</code>): MXFP4 sang FP8 là exact, NVFP4 sang FP8 thì không, và chưa ai đo mức lệch. Dữ liệu cho nó có sẵn từ phần đo MoE theo precision path ở tuần 2.</p>
+<p><b>ICML 2027</b>, hạn khoảng 28/01/2027. Tiền lệ đã xác minh: PPD (arXiv 2603.13358) "Accepted at ICML 2026", cùng họ bài lập lịch prefill nhiều lượt. MLSys bị loại vì không có trong danh sách xếp hạng. Bốn điều chỉnh khi viết cho ICML nằm ở PROPOSAL §8.1; quan trọng nhất là mở bài bằng tính đúng đắn (mục 9.8). Nếu cổng cứng (bước 8) trượt, nộp SIGMETRICS bản đo lường; nếu ICML từ chối, nộp lại NeurIPS tháng 5.</p>
+<p><b>Phương án lui số một</b> là bài đo độ trung thực của checkpoint FP4 trên phần cứng không hỗ trợ native (bản B, <code>docs/04_REVIEW_fp4_hopper_fallback.md</code>): MXFP4 sang FP8 là exact, NVFP4 sang FP8 thì không, và chưa ai đo mức lệch. Dữ liệu cho nó có sẵn từ phần đo MoE theo precision path ở bước 2.</p>
 
 <!-- ======================= self-check ======================= -->
 <h3>Tự kiểm tra phần 9</h3>
@@ -830,7 +830,7 @@ window.MathJax = {
 <details><summary>14. Vì sao pipeline không giải được ràng buộc bộ nhớ của indexer?</summary><p>Buffer logits \(c\cdot t\cdot H\cdot 4\) byte là ràng buộc mỗi lần gọi. Trải layer ra nhiều iteration không làm lần gọi nào nhỏ đi, nên attention vẫn bị kẹp ở \(c_{\text{mem}}\).</p></details>
 <details><summary>15. HyPrefill tiết kiệm chính xác cái gì, và không tiết kiệm cái gì?</summary><p>Tiết kiệm (k − 1) lần launch GDN và (k − 1) lần đọc trọng số expert mỗi layer mỗi \(k\cdot c\) token. Không làm chi phí attention rẻ đi.</p></details>
 <details><summary>16. Vì sao headline phải là HyPrefill / Layered chứ không phải HyPrefill / Sarathi?</summary><p>Vì phần lớn gain so với Sarathi ở chế độ thời gian là của pipeline, tức của Layered Prefill. So với Sarathi sẽ gán nhầm công của người khác, và reviewer biết Layered Prefill sẽ bắt ngay.</p></details>
-<details><summary>17. Thí nghiệm nào ở tuần 2 có thể giết HyPrefill nhanh nhất?</summary><p>G1c: kiểm kernel indexer thật có cấp phát buffer \(c\cdot t\) theo mỗi lần gọi không. Nếu kernel đã streaming với workspace cố định, chế độ bộ nhớ không tồn tại và đóng góp riêng của HyPrefill co về 0–10%.</p></details>
+<details><summary>17. Thí nghiệm nào ở bước 2 có thể giết HyPrefill nhanh nhất?</summary><p>G1c: kiểm kernel indexer thật có cấp phát buffer \(c\cdot t\) theo mỗi lần gọi không. Nếu kernel đã streaming với workspace cố định, chế độ bộ nhớ không tồn tại và đóng góp riêng của HyPrefill co về 0–10%.</p></details>
 
 
 <p style="margin-top:2.5rem;color:var(--muted);font-size:.9em">Trang này là phần 0 của kế hoạch HyPrefill (15/09/2026). Số liệu trong bộ tính là minh hoạ; số thật đến từ thí nghiệm 1.</p>

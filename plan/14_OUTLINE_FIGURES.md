@@ -1,6 +1,5 @@
-# Tuần 14 — Outline và toàn bộ hình
+# Bước 14 — Outline và toàn bộ hình
 
-**Ngày:** 22–28/12/2026
 **Mục tiêu:** Cố định outline và hoàn thành mọi hình với caption tự đứng được.
 
 ---
@@ -17,7 +16,7 @@
 | Mục | Trang | Nội dung |
 |---|---|---|
 | Intro | 1.5 | Hybrid + MoE là kiến trúc mặc định 2026 (liệt kê model); chunked prefill dùng một chunk cho mọi layer; quan sát: chunk đồng nhất = min over operators với **ba loại ràng buộc**; ba đóng góp |
-| Background & Motivation | 2 | Hình 1–3 từ tuần 2. **Phần thuyết phục nhất** |
+| Background & Motivation | 2 | Hình 1–3 từ bước 2. **Phần thuyết phục nhất** |
 | Design | 3 | Cost model, chọn k, buffer, stagger, tương tác prefix cache và mixed batch, ràng buộc kernel |
 | Implementation | 0.5 | Engine, LOC, ràng buộc |
 | Evaluation | 3.5 | Setup → kết quả chính → scaling theo t → ablation → overhead → so SLOWeave/Layered Prefill |
@@ -26,7 +25,7 @@
 
 ## 3. Hình
 
-| # | Nội dung | Từ tuần |
+| # | Nội dung | Từ bước |
 |---|---|---|
 | 1 | Chi phí mỗi token theo chunk, một đường mỗi t, một panel mỗi operator | 1–2 |
 | 2 | c*(t) theo t: attention giảm ~1/t, GDN và MoE phẳng | 2 |
@@ -44,7 +43,7 @@ Caption phải nói **kết luận**, không phải mô tả trục. Sai: "TTFT 
 
 ## KẾT QUẢ
 
-> **Để trống — điền khi làm xong tuần này.**
+> **Để trống — điền khi làm xong bước này.**
 
 ### R1. Số liệu chính
 
@@ -66,7 +65,7 @@ Caption phải nói **kết luận**, không phải mô tả trục. Sai: "TTFT 
 
 -
 
-### R5. Việc chuyển sang tuần sau
+### R5. Việc chuyển sang bước sau
 
 -
 

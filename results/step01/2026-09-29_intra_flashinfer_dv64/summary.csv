@@ -1,0 +1,1 @@
+op,layers,c,t,p50_ms,p99_ms,min_ms,max_ms,n,us_per_token_p50,eager_p50_ms,host_ms,k_per_graph,flush_ms,timing,experts_touched,peak_alloc_mib,peak_reserved_mib,sm_clock_mean_mhz,sm_clock_min_mhz,power_max_w,gpu_util_pre,foreign_mem_mib

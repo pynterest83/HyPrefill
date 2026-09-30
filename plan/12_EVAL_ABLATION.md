@@ -1,6 +1,5 @@
-# Tuần 12 — Đánh giá phần 2 và ablation
+# Bước 12 — Đánh giá phần 2 và ablation
 
-**Ngày:** 08–14/12/2026
 **Mục tiêu:** Hoàn tất eval cho ba model còn lại và chạy toàn bộ ablation.
 
 ---
@@ -16,7 +15,7 @@
 | Model | Câu hỏi nó trả lời |
 |---|---|
 | Kimi-Linear-48B-A3B | Cơ chế có tổng quát sang họ linear attention khác, vendor khác không? |
-| Qwen3-30B-A3B | Trên model chỉ có attention + MoE, HyPrefill có suy biến về Layered Prefill và có thắng nó trên chính benchmark của họ không? |
+| Qwen3-30B-A3B | Trên model chỉ có attention + MoE, HyPrefill có suy biến về Layered Prefill và có thắng nó trên chính benchmark của họ không? (Bản Layered đã được kiểm chứng trên model này ở bước 0 và 5; đây là eval cuối.) |
 | Qwen3.8-Flash-Next | Luận điểm còn đứng khi attention chuyển sang sparse có indexer không? Ràng buộc là thời gian hay bộ nhớ? |
 
 ## 3. Ablation
@@ -47,7 +46,7 @@ Nói thẳng vùng nào không thắng.
 
 ## KẾT QUẢ
 
-> **Để trống — điền khi làm xong tuần này.**
+> **Để trống — điền khi làm xong bước này.**
 
 ### R1. Số liệu chính
 
@@ -69,7 +68,7 @@ Nói thẳng vùng nào không thắng.
 
 -
 
-### R5. Việc chuyển sang tuần sau
+### R5. Việc chuyển sang bước sau
 
 -
 
