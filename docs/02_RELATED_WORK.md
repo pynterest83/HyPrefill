@@ -180,3 +180,43 @@ Kiến trúc model, không phải paper lập lịch. **Không scoop HyPrefill.*
 1. **So với Layered Prefill**: activation trung gian giữa các operator group quản lý ra sao (chính là chỗ họ bỏ ngỏ)? Và trên model chỉ có attention + MoE, HyPrefill có suy biến về Layered Prefill và có thắng nó trên chính benchmark của họ không?
 2. **So với SLOWeave**: vì sao không chạy SLOWeave độc lập cho từng operator group? *Trả lời*: các group chia chung một deadline B_t và phụ thuộc nhau qua activation buffer, nên là bài toán tối ưu đa biến ràng buộc chung, không tách được thành N lần SLOWeave.
 3. **So với COREY**: overhead của cơ chế chọn chunk theo group được đo và kiểm soát ra sao để không lặp lại kết quả âm? *Trả lời*: cost model offline, tra bảng, không ước lượng runtime; kèm bảng decision-cost.
+
+---
+
+## 6. Bổ sung 06/10/2026 (quét lại; mức xác minh thấp hơn các mục trên)
+
+Các mục dưới đây đọc từ method section (CascadeEP), thân PR/issue, hoặc abstract. Chưa phải "số liệu đã xác minh" như các mục 1–5. Kiểm lại trước khi trích. Tổng hợp đầy đủ ở `docs/09_RESCAN_2026-10-06.md`.
+
+### CascadeEP / AsyncEP — arXiv 2609.33252
+- streamFFN gom token expert đã sẵn sàng tới một ngưỡng launch rồi mới chạy GEMM FFN. Đây là cùng ý khấu hao với nhóm MoE của HyPrefill.
+- Động cơ: lệch tải attention giữa các replica data-parallel trong expert parallel đồng bộ. Không có decode TBT, không linear attention, attention không chạy chunk nhỏ, không so le giữa các iteration. Ngưỡng lấy từ điểm bão hoà throughput GEMM.
+- **Phải trích và phân biệt.**
+
+### SGLang PDMux — PR #42411 (tracking #41861), mở 03/10/2026
+- "Layerwise prefill + decode overlap" cho GLM-5.3-Flash (KDA + DSA + MoE), có giới hạn số layer; bản cho DeepSeek-V4.1-Flash ở #42507.
+- Đây là pipeline theo chiều sâu (ý Layered Prefill) cho hybrid, **đang vào upstream**. Mọi operator vẫn cùng số token. Chưa đọc code.
+- Dùng làm baseline Layered thứ hai bên cạnh bản cài lại trong vLLM.
+
+### vLLM PR #54145 — gom chunk prefill nhỏ khi đang có decode
+- `--min-prefill-chunk-tokens`, `--max-prefill-chunk-delay-steps`.
+- Tác giả báo: context token/step 1669 → 4785, GPU time prefill 15.1 → 8.8 µs/token (−42%), nhưng QPH chỉ +1.9%.
+- Mở, conflict từ 31/08, chưa có review của maintainer.
+- Là bằng chứng độc lập rằng chi phí cố định mỗi iteration có thật, và một bản thô của việc gom k chunk chỉ cho gain một chữ số thấp.
+
+### vLLM RFC #52906 — P-PAS (arXiv 2608.15171), prefill budget thích nghi
+- E2E −8.5% so với chunk cố định 2K. Chỉ điều chỉnh một budget toàn cục.
+
+### vLLM #56457 → PR #57105 (merge 27/09/2026)
+- Đặt trước workspace logits indexer cho trường hợp xấu nhất. Bộ nhớ indexer thành hằng số (≤ `VLLM_SPARSE_INDEXER_MAX_LOGITS_MB`); phần vượt cap chỉ thành thêm lần launch.
+- Hệ quả cho G1c: xem `docs/09` §3.
+
+### NVIDIA Dynamo — conditional disaggregation
+- Prefill tại node decode chỉ khi ISL hiệu dụng < `eff_isl_threshold` (mặc định 2048) và tỉ lệ ≤ 0.7 (`eff_isl_ratio_threshold`). Hỗ trợ vLLM; SGLang từ chối annotation bypass (issue ai-dynamo/dynamo#11514).
+- Nguồn: docs.nvidia.com/dynamo/advanced-customizations/conditional-disaggregation.
+
+### PPD — arXiv 2603.13358 (bổ sung số)
+- Full prefill làm decode đồng thời chậm khoảng 48%; append-prefill chỉ khoảng 2%. Con số 2% nghĩa là budget P ít chặt hơn ví dụ ở PROPOSAL §2.5.3.
+
+### IndexCache / IndexShare — arXiv 2603.12201
+- Bỏ 75% compute indexer, prefill nhanh 1.82× trên model DSA 30B; GLM-5.2 dùng chung một indexer cho 4 layer DSA.
+

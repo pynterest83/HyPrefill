@@ -19,6 +19,8 @@ Chunked prefill hiện nay dùng một chunk size cho toàn bộ model. Với mo
 3. In bài đọc từ `docs/01_READING_LIST.md` (có sẵn lệnh tải toàn bộ PDF).
 4. Mở `plan/00_SETUP.md` và làm lần lượt theo thứ tự.
 
+> **Cập nhật 06/10/2026:** quét lại độ mới và tiền đề, xem `docs/09_RESCAN_2026-10-06.md`. Novelty còn giữ, nhưng số đo routing thật cho thấy phần khấu hao MoE nhỏ hơn dự kiến, và G1c nghiêng FAIL. Trước bước 3 cần chạy kill test KT1/KT2 (PROPOSAL §5).
+
 ---
 
 ## Ba loại ràng buộc — luận điểm trong một bảng

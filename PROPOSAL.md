@@ -71,7 +71,8 @@ cost/token  ≈ γ·C·d + δ·d² + ε_launch/c                → giảm theo 
 
 **MoE** — thuế đọc trọng số expert mỗi chunk:
 ```
-E_touched(c) ≈ E · [1 − (1 − k/E)^c]                   Qwen3-Next: c = 256 → ~505/512 expert
+E_touched(c) ≈ E · [1 − (1 − k/E)^c]                   Qwen3-Next: c = 256 → ~505/512 expert (routing ngẫu nhiên;
+                                                       routing thật chỉ 207/512, xem trạng thái 06/10 bên dưới)
 cost_MoE(c)  ≈ W_read · min(1, E_touched/E) + η · c
 cost/token   ≈ W_read/c + η                            → giảm mạnh theo c, không phụ thuộc t
 ```
@@ -88,6 +89,12 @@ Ba **loại** ràng buộc, không phải ba hằng số:
 - *Thời gian theo t:* FA3 tăng tuyến tính theo t như dự đoán.
 - *Bộ nhớ theo c·t:* buffer indexer QSA tỉ lệ c·t, nhưng vLLM 0.30 tự chia query để buffer ≤ 512 MB, nên có thể không còn là ràng buộc của scheduler. Cần đo trên model thật và kiểm buffer chunked-scan GDN (#54775) trước khi kết luận (`plan/02`, G1c).
 - *Khấu hao:* GDN có chi phí cố định lớn mỗi lần gọi (~53 µs GPU, ~0.2 ms CPU khi eager), không phụ thuộc t. MoE đọc hết expert từ c ≥ 256, nhưng trong batch trộn decode cũng đọc chung weight đó; mức ảnh hưởng phụ thuộc batch decode, đang đo (`plan/02` §2.4).
+
+**Cập nhật 06/10/2026 (quét lại, `docs/09_RESCAN_2026-10-06.md`; là bằng chứng, chưa phải quyết định cổng):**
+- *Thời gian theo t:* FA3 có cost/token phẳng theo c. Attention không tự cần chunk nhỏ, chỉ TBT budget ép c nhỏ, và chunk thích nghi kiểu SLOWeave đã theo được t.
+- *Bộ nhớ theo c·t:* vLLM PR #57105 (merge 27/09, đóng #56457) đặt trước workspace logits cố định. Phần vượt cap thành thêm lần launch, không thành giới hạn chunk. Buffer GDN (#54775) tỉ lệ với c nhưng không phụ thuộc t. → G1c nghiêng mạnh về FAIL, quyết chính thức sau lượt đo peak memory.
+- *Khấu hao:* routing thật (`results/step02/moe_overlap_*.csv`) cho thấy decode D = 32 đã chạm 151/512 expert, hợp với chunk 512 là 289, với chunk 2048 là 340. Prefill c = 256 đứng riêng chỉ chạm 207/512, không phải ~505. Phần tiết kiệm khi chunk lớn chỉ đến từ các expert thêm vào ngoài decode, ước lượng khoảng 6–7% iteration 50 ms. Ước lượng này chưa đo thời gian `moe_mixed` với routing thật; đo ở KT1. GDN gom k chunk tiết kiệm ≤ 3.4% budget.
+- Oracle r_d/r_u = 1.27–2.0 (LOG 29/09) chỉ tái hiện được với routing ngẫu nhiên. Phải chạy lại bằng routing thật (KT2, §5).
 
 **Vì mọi layer phải xử lý cùng c mỗi iteration, chunk đồng nhất là `min` trên toàn bộ ràng buộc.** Ở context dài, attention hoặc indexer kẹp c xuống vài trăm token, và GDN cùng MoE bị kéo theo, chạy ở đúng vùng chúng kém hiệu quả nhất.
 
@@ -138,6 +145,12 @@ Luận điểm có ý nghĩa ở **mọi GPU chạy đồng thời prefill và d
 
 Trả lời: (a) phạm vi 1 ở trên không phụ thuộc vào việc hệ có disaggregate hay không; (b) đa số triển khai không ở quy mô 100.000 accelerator, và mặc định của hai engine phổ biến nhất là colocated; (c) EPD đòi hỏi interconnect băng thông cao mà nhiều cụm không có. **Lưu ý trung thực:** blog GLM không nói rõ node decode của họ có chạy append-prefill hay không; lập luận (a) dựa trên PPD, không được gán suy đoán cho GLM.
 
+**Cập nhật phạm vi 06/10/2026** (`docs/09_RESCAN_2026-10-06.md` §4):
+- Loại khỏi phạm vi các model **thoát prefill sớm** (DeepSeek-V4.1-Flash CED, HySparse2). Chỉ nhận hybrid mà prefill chạy mọi layer.
+- Dynamo conditional disaggregation mặc định chỉ prefill tại node decode khi ISL hiệu dụng < 2048 (`eff_isl_threshold`). Bản đồ regime phải quét Δ và đánh dấu ngưỡng này.
+- PPD đo được append-prefill chỉ làm decode chậm khoảng 2%, nên budget P ít khi chặt như ví dụ §2.5.3.
+- Đưa **serving agent colocated** (1–8 GPU, không có ngưỡng bypass, append trung bình khoảng 6.5K theo TraceLab) lên ngang hàng với phạm vi 1.
+
 ### 2.5 Vì sao append-prefill là regime mạnh nhất, không chỉ là regime an toàn
 
 Mục 2.4 nói append-prefill miễn nhiễm với câu hỏi disaggregation. Mục này nói thêm một lý do mạnh hơn: **đó cũng là nơi cơ chế cho gain lớn nhất.**
@@ -178,6 +191,8 @@ Prefix t = 128K, token mới Δ = 2048, SLO P99 TBT B = 50 ms, decode batch ăn 
 | MoE | cả 2048 một lần | 1 nếu được tự chọn |
 
 Chunk đồng nhất ép GDN và MoE chạy 8 lần thay vì 1. Với MoE, mỗi lần chạy đọc gần như toàn bộ trọng số expert (coupon-collector: c = 256 đã chạm ~505/512 expert trên Qwen3-Next), nên đó là **8 lần đọc toàn bộ expert pool chỉ để xử lý 2048 token**. Với GDN, đó là 8 lần trả `ε_launch` thay vì 1.
+
+> **Lưu ý 06/10/2026:** con số 505/512 là routing ngẫu nhiên. Với routing thật, chunk 256 đứng riêng chỉ chạm 207/512. Trong batch trộn với D = 32, decode đã chạm 151 expert, nên mỗi chunk chỉ đọc thêm phần chênh lệch (§1.3, cập nhật 06/10). Ví dụ này phóng đại phần khấu hao MoE; số thật lấy từ KT1.
 
 Con số 256 và 2048 là minh hoạ; số thật đến từ bước 1–2.
 
@@ -230,6 +245,8 @@ Chi tiết và số liệu trong `docs/02_RELATED_WORK.md`. Tóm tắt:
 | PrefillOnly §4.2 (2505.07203) | FFN chunk, attention nguyên khối | — | dense | mục tiêu bộ nhớ, không decode, không TBT |
 | FlowPrefill (2602.16603) | biên operator để **preempt** | — | dense + MoE | cùng số token qua mọi operator |
 | Marconi (MLSys'25) | — | FLOP-aware | attention + Mamba | caching, không scheduling |
+| CascadeEP / AsyncEP (2609.33252) | gom token tới ngưỡng launch trước GEMM MoE (streamFFN) | throughput GEMM | MoE | động cơ là lệch tải DP trong expert parallel đồng bộ, không phải TBT; không linear attention, không so le |
+| SGLang PDMux (PR #42411, mở 03/10/2026) | layerwise prefill + decode overlap | giới hạn số layer | KDA + DSA + MoE (GLM-5.3-Flash) | pipeline theo chiều sâu, mọi operator cùng số token; là baseline Layered cho hybrid đang vào upstream |
 
 **Bằng chứng ủng hộ từ công nghiệp (blog hạ tầng GLM, 17/09/2026).** Hai điểm dùng được trong Motivation:
 - GLM cấp **chiến lược song song riêng cho linear attention**: "intra-node tensor parallelism for linear attention and the LM Head". Tiền lệ công nghiệp cho nguyên tắc "operator khác nhau cần chính sách khác nhau", trên trục parallelism thay vì trục chunk scheduling.
@@ -237,6 +254,12 @@ Chi tiết và số liệu trong `docs/02_RELATED_WORK.md`. Tóm tắt:
 - Phần cứng của họ "relatively limited chip memory capacity and bandwidth" → ràng buộc bộ nhớ (loại 2) càng quan trọng, không kém đi.
 
 **Xác minh độ mới (18/09/2026).** Quét arXiv, GitHub API trên vLLM/SGLang/TensorRT-LLM, docs LMDeploy/Dynamo/Mooncake/MLX/MLC-LLM/llama.cpp, và tech report của tám họ model. Không paper hay engine nào cho các operator group khác nhau chunk size khác nhau trong cùng một forward pass, chọn từ cost model theo operator. Mọi engine vẫn một knob toàn cục. Layered Prefill chưa vào upstream nào.
+
+**Xác minh lại (06/10/2026, `docs/09_RESCAN_2026-10-06.md`).** Khoảng 60 truy vấn arXiv, khoảng 18 truy vấn OpenReview ICLR 2027, citation của Layered Prefill và SLOWeave. Theo hiểu biết của chúng tôi, vẫn chưa paper hay engine nào cho các operator group số token khác nhau trong cùng một forward pass. Hai thay đổi:
+- Pipeline theo chiều sâu cho hybrid đã có PR trong SGLang (PDMux #42411).
+- CascadeEP đã dùng ý gom token cho MoE.
+
+Câu khẳng định trong bài phải viết dạng "to our knowledge" và phân biệt rõ với hai công trình này. Quét lại khoảng 30/10/2026, sau hạn MLSys 2027.
 
 ---
 
@@ -316,6 +339,10 @@ Theo đúng cách baseline chính (Layered Prefill, arXiv 2510.08055 §6) và SL
 
 **Vì sao tách G1 (cập nhật 24/09/2026).** Cost model ở §2.2 chỉ mô hình hoá chunk theo operator, không có **pipeline theo chiều sâu** — tức cho một batch trải qua nhiều iteration trên đường đi xuống các layer, ý tưởng cốt lõi của Layered Prefill. Một mô phỏng dòng token (`sim/hyprefill_sim.js`, hằng số minh hoạ, chỉ là giả thuyết) gợi ý: khi attention bị giới hạn bởi **thời gian**, pipeline mang phần lớn gain và chunk theo operator chỉ thêm 0–10%; khi attention bị giới hạn bởi **bộ nhớ** (buffer indexer theo mỗi lần gọi), pipeline không gỡ được và chunk theo operator trở thành cơ chế chính. Lý do: budget TBT là ràng buộc mỗi iteration, còn buffer indexer là ràng buộc mỗi lần gọi. G1 cũ đo gộp hai cơ chế nên có thể đạt trong khi đóng góp riêng của HyPrefill bằng không. Claim trung tâm và abstract sẽ viết lại **sau** khi có số đo G1, không phải bây giờ. Giải thích đầy đủ: bài giảng `docs/00_FOUNDATIONS.html` mục 9.
 
+**Kill test bổ sung (viết 06/10/2026, trước khi chạy; không đổi ngưỡng các cổng trên).** Quét lại cho thấy oracle bước 2 dùng MoE routing ngẫu nhiên và chế độ bộ nhớ của G1c có thể không tồn tại (`docs/09_RESCAN_2026-10-06.md` §3). Vì vậy chạy hai kiểm tra rẻ trước bước 3:
+- **KT1:** `op_cost.py --op moe_mixed --routing <dump>`, D ∈ {32, 64}, c ∈ {256, 512, 2048}. GO nếu một chunk 2048 có chi phí thêm ≤ 0.6× tổng của bốn chunk 512, và tiết kiệm ≥ 8% iteration 50 ms.
+- **KT2:** simulator bước 3 với routing thật, append-prefill t ≥ 64K, Δ ∈ {2K, 4K, 8K}. GO nếu ≥ 1.25× so với chunk đồng nhất đã tune và SLOWeave ở ít nhất một ô. Nếu < 1.10× ở mọi ô thì chuyển sang phương án lui đo đạc ("chi phí cố định mỗi iteration", `docs/09` §5).
+
 **Câu hỏi độ bền bắt buộc trả lời ở G1:** trên Qwen3.8-Flash-Next (sparse attention), gain còn bao nhiêu? Nếu < 1.10 ở mọi t ≤ 256K thì claim thu hẹp về họ full-attention hybrid và nộp sớm.
 
 ---
@@ -325,6 +352,8 @@ Theo đúng cách baseline chính (Layered Prefill, arXiv 2510.08055 §6) và SL
 | Rủi ro | Xác suất | Đỡ |
 |---|---|---|
 | Gain nhỏ ở context ≤ 8K vì SLOWeave đã đóng gap | Cao | Định vị long-context (≥ 32K); báo cáo trung thực vùng không thắng |
+| **Hiệu ứng nhỏ với routing thật** (06/10/2026): decode đã đọc phần lớn expert dùng chung; tiết kiệm MoE ước lượng khoảng 6–7% iteration, GDN ≤ 3.4% | **Cao** | KT1/KT2 trước bước 3; nếu trượt thì chuyển phương án lui đo đạc (`docs/09` §5) |
+| Baseline Layered cho hybrid vào upstream (SGLang PDMux #42411) | Trung bình | So với PDMux như một baseline; nhấn vào phần khác: số token theo operator, không phải pipeline theo chiều sâu |
 | Reviewer: "chỉ là tuning" | Trung bình | Abstraction "min over operators" với ba loại ràng buộc; ablation HyPrefill-static thua HyPrefill-dynamic |
 | Overhead buffer (COREY failure mode) | Trung bình | Cost model offline, không ước lượng runtime; đo overhead bước 6, trước khi đầu tư |
 | **Engineering trong vLLM nặng hơn dự kiến** | **Cao** | Một hạ tầng chạy theo nhóm layer dùng chung cho Layered và HyPrefill; cổng cứng bước 8 với phương án lui trên fork nanovllm |
@@ -388,6 +417,7 @@ HyPrefill/
 │   ├── 03_MEASUREMENT.md    kỷ luật đo lường
 │   ├── 04_REVIEW_fp4_hopper_fallback.md
 │   ├── 05_DEADLINES_2027.md
+│   ├── 09_RESCAN_2026-10-06.md  quét lại độ mới + tiền đề, kill test KT1/KT2
 │   └── lecture_notes/       ghi chú đầy đủ 9 paper
 ├── plan/00_SETUP.md … 16_SUBMIT.md
 ├── bench/   sim/   results/   figures/

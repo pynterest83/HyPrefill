@@ -28,6 +28,13 @@ Mẫu: **Làm gì** · **Số liệu chính** · **Bất ngờ** · **Bị chặ
 - Bị chặn: các dòng t = 0 của §2.5 đo sai cách (trừ nhầm phần đọc weight); bản đầu của `--sweep` sai, đã sửa và chạy lại.
 - Mai: sửa §2.5 t = 0, mô hình hoá phần CPU; bảng bước 2 (MoE, decode) để chạy §2.5 cho Qwen3-Next và §2.5 có decode song song.
 
+### 2026-10-06 (quét lại độ mới + tiền đề, không đo)
+- Làm gì: ba checker độc lập quét paper (khoảng 60 truy vấn arXiv, 18 OpenReview ICLR'27), upstream (vLLM/SGLang/Dynamo 01/09–06/10) và xu hướng kiến trúc; đối chiếu tiền đề với `results/step01–02`. Tổng hợp ở `docs/09_RESCAN_2026-10-06.md`; cập nhật PROPOSAL §1.3, §2.4, §2.5.3, §3, §5, §6.
+- Số liệu chính: novelty còn giữ (không có kết quả HIGH; gần nhất là CascadeEP 2609.33252, MEDIUM-LOW). Routing thật Qwen3-Next: decode D=32 chạm 151/512 expert; hợp với c=512 là 289, với c=2048 là 340; prefill c=256 đứng riêng chạm 207 (không phải ~505). GDN gom k chunk tiết kiệm ≤ 3.4% budget. Điểm ước lượng trước khi đo giảm từ 7.5–8 xuống khoảng 5.
+- Bất ngờ: oracle 1.27–2.0 của 29/09 chỉ tái hiện được với routing ngẫu nhiên. vLLM PR #57105 (merge 27/09) đặt trước workspace logits indexer → G1c nghiêng FAIL. SGLang PR #42411 (PDMux, 03/10) đưa layerwise prefill + decode overlap cho GLM-5.3-Flash vào upstream.
+- Bị chặn: chưa có số đo thời gian `moe_mixed` với routing thật; ước lượng 6–7% tiết kiệm MoE còn là suy luận.
+- Mai: chạy KT1 (`moe_mixed --routing`, D ∈ {32, 64}, c ∈ {256, 512, 2048}) rồi KT2 (simulator với routing thật); đo peak memory indexer cho G1c. Tiêu chí GO/KILL đã viết ở PROPOSAL §5 trước khi chạy.
+
 ---
 
 ## Ý tưởng để dành (không code trong lúc chạy kế hoạch)
