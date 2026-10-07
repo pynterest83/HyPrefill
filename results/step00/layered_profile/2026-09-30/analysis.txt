@@ -1,0 +1,6 @@
+chunked  (nsys, both ranks): GPU kernel time 90.02 s | moe 34% (30.4 s) attention 25% (22.5 s) allreduce 21% (19.2 s) other 8% (7.4 s) gemm 6% (5.7 s) norm 5% (4.7 s)
+   ModelRunner::run: 4758 calls, median 26.98 ms | CPU-side totals (s, both ranks): run 106.4 run_model 96.3 prepare 4.3 sample 3.5
+   top MoE kernels (s): [('fused_moe_kernel', 28.1), ('void moe_align_block_size_kernel<int>(const T1 *, int *, int *, int *,', 1.02), ('void sarathi::moe::topkGatingSoftmax<(int)4, (int)128, (int)4, (int)16', 0.78)]
+layered  (nsys, both ranks): GPU kernel time 79.93 s | moe 29% (22.8 s) allreduce 26% (20.5 s) attention 22% (17.5 s) other 9% (7.4 s) gemm 8% (6.2 s) norm 7% (5.5 s)
+   ModelRunner::run: 4108 calls, median 26.77 ms | CPU-side totals (s, both ranks): run 112.1 run_model 88.6 prepare 12.5 sample 8.4
+   top MoE kernels (s): [('fused_moe_kernel', 20.76), ('void moe_align_block_size_kernel<int>(const T1 *, int *, int *, int *,', 0.85), ('void sarathi::moe::topkGatingSoftmax<(int)4, (int)128, (int)4, (int)16', 0.75)]

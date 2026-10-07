@@ -34,6 +34,8 @@ import argparse, csv, datetime, json, os, pathlib, shlex, subprocess, sys, time
 
 import torch
 
+import cgroup_cpu  # bench/, on sys.path when run as a script
+
 REPO = pathlib.Path(__file__).resolve().parent.parent
 DEFAULT_C = [64, 65, 128, 129, 256, 512, 1024, 2048, 4096, 8192]
 DEFAULT_T = [0, 4096, 16384, 32768, 65536, 131072, 262144]
@@ -675,6 +677,7 @@ def main():
                    "sm_clock_mean_mhz", "sm_clock_min_mhz", "power_max_w",
                    "gpu_util_pre", "foreign_mem_mib"])
     sampler = ClockSampler()
+    cg0 = cgroup_cpu.snapshot()
 
     for op in ops:
         shape = shapes.get({"fa": "attn", "gdn": "gdn", "fa_decode": "attn", "gdn_decode": "gdn",
@@ -731,6 +734,7 @@ def main():
                 del fn
 
     meta["gpu_after"] = gpu_state()
+    meta["cgroup_cpu"] = cgroup_cpu.delta(cg0); cgroup_cpu.warn(meta["cgroup_cpu"])
     (d / "config.json").write_text(json.dumps(meta, indent=2))
     print(f"\nwrote {d.relative_to(REPO)}/")
 

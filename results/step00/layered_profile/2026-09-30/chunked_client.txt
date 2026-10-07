@@ -1,0 +1,11 @@
+Successful requests:                     600       
+Benchmark duration (s):                  262.69    
+Request throughput (req/s):              2.28      
+Output token throughput (tok/s):         464.03    
+Total Token throughput (tok/s):          20401.81  
+Mean TTFT (ms):                          7825.41   
+Median TTFT (ms):                        4026.40   
+P99 TTFT (ms):                           19971.67  
+Mean TPOT (ms):                          22.77     
+Median TPOT (ms):                        25.38     
+P99 TPOT (ms):                           29.71     

@@ -84,9 +84,12 @@ for mode in $MODES; do
     say "warmup: $n_warm requests at $RATE req/s"
     taskset -c "$CPUS" python benchmarks/benchmark_serving.py "${common[@]}" --num-prompts $n_warm >> "$OUT/client_${rtag}_warmup.log" 2>&1
     say "benchmark: $n requests at $RATE req/s"
+    python "$REPO/bench/cgroup_cpu.py" snap > "$OUT/.cg_$rtag.json"  # container CPU throttling, see bench/cgroup_cpu.py
     taskset -c "$CPUS" python benchmarks/benchmark_serving.py "${common[@]}" --num-prompts $n \
       --save-result --save-detailed --result-dir "$OUT" --result-filename "$rtag.json" > "$OUT/client_$rtag.log" 2>&1
     say "client exit $?"
+    python "$REPO/bench/cgroup_cpu.py" delta "$OUT/.cg_$rtag.json" --tag "$rtag" --csv "$OUT/cgroup_cpu.csv" 2>&1 | tee -a "$LOG"
+    rm -f "$OUT/.cg_$rtag.json"
     sleep 30   # let the queue drain before the next rate
   done
   kill $mon

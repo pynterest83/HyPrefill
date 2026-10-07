@@ -77,9 +77,7 @@ Mục tiêu không phải tái tạo số của họ, mà là (a) biết codebas
 
 ## KẾT QUẢ
 
-> Điền 2026-09-29. Còn thiếu: ghi chú 10 dòng cho Sarathi-Serve và Layered Prefill (việc đọc paper).
->
-> **Số liệu dưới đây đo ở 1830 MHz, KV liền mạch** (dữ liệu ở `~/hyprefill_data/clk1830/`). Chuẩn đo đã chốt lại: 1980 MHz, KV paged, state GDN theo config. Kết luận định tính giữ nguyên; số tuyệt đối sẽ thay bằng kết quả của `bench/run_campaign_1980.sh`.
+> Điền 2026-09-29, cập nhật 2026-10-07 với số đo ở 1980 MHz (số 1830 MHz cũ ở `~/hyprefill_data/clk1830/`, không dùng nữa). Còn thiếu: ghi chú 10 dòng cho Sarathi-Serve và Layered Prefill (việc đọc paper).
 
 ### R1. Số liệu chính
 
@@ -88,10 +86,13 @@ Mục tiêu không phải tái tạo số của họ, mà là (a) biết codebas
 | Môi trường | vllm 0.30.0, torch 2.13.0+cu130, flashinfer 0.6.18; env riêng `layered-prefill` (torch 2.8.0+cu128) cho fork | `scripts/setup_server.sh`, `scripts/setup_layered_prefill.sh` |
 | Bố cục model | Qwen3-Next 12 attention + 36 GDN + 48 MoE; Qwen3.8-27B 16 + 48, FFN dense; Qwen3.8-Flash-Next 12 QSA + 36 GDN; Kimi-Linear 7 MLA + 20 KDA (2.9 : 1, không đúng 3 : 1) | `results/step00/model_configs.md` |
 | Indexer Qwen3.8-Flash-Next | H^I = 4, d^I = 128, nén 4, budget 2048 | Mô phỏng giả định H = 64, không nén |
-| Clock | GPU 4–7 khoá 1830 MHz (admin); root trong container không khoá được; FA3 ở context dài vẫn tụt tới ~1140 MHz vì trần 700 W | `docs/03_MEASUREMENT.md` §1 |
-| Độ lặp lại (bước 1) | median lệch 0.2–0.9% giữa hai lượt; GDN 100% dòng < 3%, FA 87–99% | Bảng cost dùng median 4 lượt |
-| Demo Layered (Qwen3-30B-A3B, arXiv, 2×H200) | Cả chunked và layered đạt 100% SLO (TTFT ≤ 10 s, TBT ≤ 125 ms) tới 2.5 req/s; ở 3.0 req/s chunked 13.6%, layered 10.6%; throughput tối đa 2.67 so với 2.61 req/s | Paper (2×H100): layered giữ ~100% tới 1.7 req/s, chunked 1.5 req/s. **Chưa tái hiện được lợi thế của Layered** |
-| TTFT trung bình ở tải chưa bão hoà | layered chậm hơn chunked ~18–22% (1.3 / 2.0 / 2.5 req/s) | Không mâu thuẫn với claim của paper: họ claim tỉ lệ đạt SLO, không claim TTFT ở tải nhẹ |
+| Clock | GPU 4–7 khoá 1980 MHz (admin); root trong container không khoá được; FA3 ở context dài vẫn tụt tới ~1140 MHz vì trần 700 W | `docs/03_MEASUREMENT.md` §1 |
+| Độ lặp lại (bước 1, 1980 MHz) | median lệch 0.17–0.19% giữa hai card; 100% dòng không chạm trần < 3% | Đạt tiêu chí bước 0 |
+| Demo Layered (Qwen3-30B-A3B, arXiv, 2×H200, 1980 MHz, cấu hình mặc định của tác giả) | Tỉ lệ đạt SLO (TTFT ≤ 10 s, TBT ≤ 125 ms) ở 2.6 / 2.7 / 2.8 req/s: chunked 98.5 / 90.7 / 55.6%, layered 99.7 / 83.2 / 21.2%. Goodput: chunked ~2.7, layered ~2.6 req/s | Paper (2×H100): layered 1.7, chunked 1.5 req/s. **Lợi thế goodput không tái hiện trên H200**. `results/step00/layered_demo/2026-09-30/summary.csv` |
+| TTFT trung bình ở tải chưa bão hoà | layered chậm hơn chunked 7–17% (1.3 / 2.0 / 2.5 req/s) | Không mâu thuẫn với claim của paper: họ claim tỉ lệ đạt SLO, không claim TTFT ở tải nhẹ |
+| Năng lượng mỗi token (cùng workload, 9 mức tải) | layered ít hơn chunked 9.9–12.7% (vd 2.5 req/s: 43.7 so với 49.4 mJ/token) | Paper ~22%. **Hiện tượng tiết kiệm có tái hiện**, nhỏ hơn. `energy.csv` cùng thư mục |
+| Profile nsys (2.5 req/s, cửa sổ 60 s giữa tải, cả hai bão hoà dưới nsys; cộng 2 rank) | Thời gian kernel GPU: chunked 90.0 s, layered 79.9 s (−11%). MoE 30.4 → 22.8 s (−25%; `fused_moe_kernel` 28.1 → 20.8 s); attention 22.5 → 17.5 s (−22%); all-reduce 19.2 → 20.5 s; GEMM, norm, khác gần như không đổi | **Hiện tượng giảm đọc lại expert có tái hiện ở phía GPU.** `results/step00/layered_profile/2026-09-30/` |
+| Phía CPU trong cùng cửa sổ (NVTX, cộng 2 rank) | `prepare` 4.3 → 12.5 s (0.9 → 3.05 ms mỗi step), `sample` 3.5 → 8.4 s; GPU bận 75% (chunked) so với 67% (layered) thời gian thực | Phần GPU tiết kiệm được (~5 s mỗi rank mỗi phút) bị phần CPU tăng thêm (~6.5 s) ăn hết |
 
 ### R2. Hình sinh ra
 
@@ -102,7 +103,9 @@ Mục tiêu không phải tái tạo số của họ, mà là (a) biết codebas
 ### R3. Khác dự đoán / bất ngờ
 
 - Cùng 1.3 req/s như Bảng 6 của paper nhưng trên H200 là tải nhẹ (TTFT chunked 0.6 s so với 2.8 s trên H100); phải so ở cùng mức tải tương đối, tức quét tải.
-- Trên H200, Layered không có lợi thế goodput với cấu hình của chính fork. Chưa rõ vì phần cứng (HBM nhanh hơn ~43% làm việc đọc lại expert rẻ đi) hay vì môi trường (cả hai chế độ đều chạm `torch._dynamo` recompile_limit ở `forward_attention`).
+- Trên H200, Layered không có lợi thế goodput với cấu hình của chính fork, **nhưng cơ chế của nó vẫn hoạt động**: MoE −25%, attention −22%, tổng kernel GPU −11%, năng lượng −10…−13%. Lợi ích không thành goodput vì fork bị giới hạn bởi CPU: chế độ layered tăng thời gian `prepare` gấp ~3.4 lần và `sample` gấp ~2.7 lần mỗi step, GPU bận giảm từ 75% xuống 67%. Trên H100 (HBM chậm hơn ~30%) phần GPU tiết kiệm lớn hơn so với phần CPU, nên paper thấy được lợi thế. Đây là giải thích khớp với số đo, chưa kiểm bằng thí nghiệm riêng (vd fork trên H100, hoặc giảm phần CPU của layered).
+- Nâng `recompile_limit` lên 256 làm TPOT tăng gấp đôi; số dùng ở trên chạy mặc định như tác giả.
+- Hệ quả cho HyPrefill: (1) cài Layered/HyPrefill trong vLLM phải giữ phần CPU mỗi iteration nhỏ, nếu không phần GPU tiết kiệm bị ăn mất như ở fork; (2) trên H200 phần đọc lại expert nhỏ hơn trên H100, nên lợi ích dựa vào MoE cần đo trên chính máy này, không suy từ paper.
 - flash-attn 2.8.3 không build được với torch mới; fork cần CUDA 12.8 đúng bản (trộn kênh conda cho ra nvcc 12.4).
 - Khi tắt server của fork, các tiến trình con của engine không tắt theo và giữ ~120 GB GPU; phải tắt cả process group.
 
@@ -115,7 +118,8 @@ Mục tiêu không phải tái tạo số của họ, mà là (a) biết codebas
 ### R5. Việc chuyển sang bước sau
 
 - Ghi chú đọc Sarathi-Serve và Layered Prefill.
-- Trước khi dùng Layered làm baseline chính: quét dày 2.5–3.2 req/s, đo lưu lượng đọc expert của hai chế độ, và loại trừ ảnh hưởng của torch.compile recompile (tăng `recompile_limit`, chạy lại một mức tải).
+- Layered trong vLLM (bước 5) cần đo riêng chi phí CPU mỗi iteration so với chunked; mục tiêu là phần CPU không tăng đáng kể so với chunked.
+- Mô hình hoá phần CPU mỗi iteration (bước 1 còn mở) cần cả cho chế độ chạy theo nhóm layer.
 
 ---
 

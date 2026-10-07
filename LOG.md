@@ -35,6 +35,13 @@ Mẫu: **Làm gì** · **Số liệu chính** · **Bất ngờ** · **Bị chặ
 - Bị chặn: chưa có số đo thời gian `moe_mixed` với routing thật; ước lượng 6–7% tiết kiệm MoE còn là suy luận.
 - Mai: chạy KT1 (`moe_mixed --routing`, D ∈ {32, 64}, c ∈ {256, 512, 2048}) rồi KT2 (simulator với routing thật); đo peak memory indexer cho G1c. Tiêu chí GO/KILL đã viết ở PROPOSAL §5 trước khi chạy.
 
+### 2026-09-30 → 2026-10-07 (kiểm chứng Layered trên H200)
+- Làm gì: demo Layered 9 mức tải ở 1980 MHz (mặc định của tác giả); năng lượng mỗi token; dump routing MoE thật (Qwen3-Next, arXiv); profile nsys của fork, chunked và layered (`bench/step00_layered_profile.sh`).
+- Số liệu chính: goodput chunked ~2.7, layered ~2.6 req/s; layered ít năng lượng hơn 9.9–12.7%; trong cùng cửa sổ 60 s, kernel MoE −25%, attention −22%, tổng GPU −11%, nhưng `prepare` ×3.4 và `sample` ×2.4 (tổng), GPU bận 75% → 67%.
+- Bất ngờ: cơ chế của Layered có tác dụng trên H200 nhưng fork bị giới hạn bởi CPU nên không thành goodput; routing thật tập trung hơn router ngẫu nhiên (decode 32 → 151 expert, chunk 8192 → 373).
+- Bị chặn: chưa kiểm riêng giả thuyết "CPU ăn mất phần GPU tiết kiệm" (cần giảm phần CPU của layered hoặc chạy trên H100).
+- Tiếp: bước 1 còn mở (mô hình phần CPU, §2.5 cho Qwen3-Next TP2), bước 2 (`moe_mixed` với routing thật, G1c trên model thật).
+
 ---
 
 ## Ý tưởng để dành (không code trong lúc chạy kế hoạch)

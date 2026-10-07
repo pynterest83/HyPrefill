@@ -19,6 +19,8 @@ sudo nvidia-smi -i 4,5,6,7 -rgc
 - Khoá không giữ được clock khi chạm trần công suất (700 W). Đã thấy trên GPU 4 (khoá 1830 MHz): FA3 Qwen3-Next TP2 ở c = 8192, t = 256K chạy ở 1140–1830 MHz, trung bình ~1380 MHz, 700 W; GDN giữ đúng 1830. `bench/op_cost.py` lấy mẫu clock và công suất **trong lúc đo** (NVML, ~10 ms) và ghi `sm_clock_mean_mhz`, `sm_clock_min_mhz`, `power_max_w` theo từng dòng. Các dòng bị giới hạn công suất vẫn dùng được nếu lặp lại được giữa hai lượt đo (plan/00: lệch < 3%); nếu không, khoá ở mức thấp hơn mà GPU giữ được và dùng đúng mức đó cho mọi phiên.
 - **GPU phải được dùng riêng trong lúc đo.** Tiến trình của container khác không hiện trong `nvidia-smi`; kiểm tra `memory.used` và `utilization.gpu` trước và trong lúc đo (sau khi để GPU nhàn rỗi ~1 s, vì `utilization.gpu` là trung bình theo cửa sổ), ghi vào từng dòng kết quả. Dòng nào có tải lạ thì bỏ.
 
+- **CPU của container bị giới hạn bởi cgroup** (`/sys/fs/cgroup/cpu.max`: 32 core trên `quangch1-dev-0`). Vòng lặp engine của vLLM và của fork là Python đơn luồng, nên mỗi lần bị bóp CPU (throttle) là GPU phải chờ, làm phồng các số đo theo thời gian thực (TTFT, TBT, thời gian mỗi step). Thường xảy ra khi nhiều job của container chạy cùng lúc. Mọi script đo ghi bộ đếm `cpu.stat` trước và sau (`bench/cgroup_cpu.py`): `cgroup_cpu` trong `config.json` (`op_cost.py`, `validate_forward.py`, `profile_vllm_step.py`, `allreduce_cost.py`; `--sweep` ghi thêm cột `cpu_throttled_s` theo từng dòng), `cgroup_cpu.csv` theo từng lượt client trong demo và profile của fork (`summarize_demo.py` đưa vào cột `cpu_throttled_s`). `nr_throttled` > 0 thì script in cảnh báo; số đo theo thời gian thực của lượt đó phải kiểm lại hoặc đo lại. Thời gian GPU đo bằng replay graph gần như không bị ảnh hưởng.
+
 Kiểm tra nhiệt độ trước khi đo: nếu GPU đang nóng từ phiên trước, số đầu tiên sẽ lệch. Chờ về nhiệt độ nền.
 
 ## 2. Đo thời gian
@@ -94,7 +96,8 @@ Quy tắc: **không bao giờ ghi đè**. Chạy lại thì tạo thư mục ng�
   "torch": "...", "flash_attn": "...", "fla": "...", "vllm_commit": "...",
   "repo_commit": "...",
   "cmd": "python bench/op_cost.py --op fa --c 64,128,...",
-  "clock_locked": true
+  "clock_locked": true,
+  "cgroup_cpu": {"nr_throttled": 0, "throttled_s": 0.0, "...": "..."}
 }
 ```
 

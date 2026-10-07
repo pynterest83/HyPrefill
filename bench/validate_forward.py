@@ -128,6 +128,7 @@ def main():
     ap.add_argument("--tp", type=int, default=1)
     a = ap.parse_args()
     bds = [int(x) for x in a.decode_batch.split(",") if x]
+    import cgroup_cpu; cg0 = cgroup_cpu.snapshot()
 
     hf = pathlib.Path(os.environ.get("HF_HOME", pathlib.Path.home() / "hf_cache"))
     model = a.model or str(next((hf / "hub/models--Qwen--Qwen3.8-27B/snapshots").iterdir()))
@@ -205,7 +206,8 @@ def main():
         date=datetime.datetime.now().isoformat(timespec="seconds"), model=model, table=a.table,
         cs=cs, ts=ts, repeats=a.repeats, baseline=a.baseline, decode_batch=bds, decode_ctx=a.decode_ctx, model_tag=a.model_tag, tp=a.tp, gpu=gpu.strip(), cuda_visible_devices=os.environ.get("CUDA_VISIBLE_DEVICES"),
         vllm=vllm.__version__, torch=torch.__version__, repo_commit=commit, cmd=" ".join(sys.argv),
-        clock_locked=True, note=f"clock lock verified by the caller (idle SM clock pinned at {os.environ.get('LOCK_MHZ', '1980')} MHz)"), indent=2))
+        cgroup_cpu=cgroup_cpu.delta(cg0), clock_locked=True, note=f"clock lock verified by the caller (idle SM clock pinned at {os.environ.get('LOCK_MHZ', '1980')} MHz)"), indent=2))
+    cgroup_cpu.warn(json.loads((out / "config.json").read_text())["cgroup_cpu"])
     print(f"wrote {out.relative_to(REPO)}/")
 
 

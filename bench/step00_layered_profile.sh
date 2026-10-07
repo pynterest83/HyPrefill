@@ -39,8 +39,10 @@ for mode in ${MODES:-chunked layered}; do
       -d '{"model":"","prompt":"hi","max_tokens":1,"temperature":0.0,"stream":false}'; do
     kill -0 $srv 2>/dev/null || { echo "server died"; exit 1; }; sleep 5; done
   n=$(python -c "print(int($DURATION * $RATE))")
+  python "$REPO/bench/cgroup_cpu.py" snap > "$OUT/.cg_$mode.json"  # container CPU throttling, see bench/cgroup_cpu.py
   taskset -c "$CPUS" python benchmarks/benchmark_serving.py --model "$MODEL" --endpoint /generate --backend nano-vllm \
     --port $port --dataset-name arxiv --request-rate "$RATE" --num-prompts $n --seed 0 > "$OUT/client_$mode.log" 2>&1
+  python "$REPO/bench/cgroup_cpu.py" delta "$OUT/.cg_$mode.json" --tag "$mode" --csv "$OUT/cgroup_cpu.csv"; rm -f "$OUT/.cg_$mode.json"
   sleep 30  # let nsys finish writing the report
   ls "$OUT/$mode"/* >/dev/null 2>&1 && echo "$mode: trace written" || echo "$mode: NO trace"
   if ls "$OUT/$mode"/*.nsys-rep >/dev/null 2>&1; then

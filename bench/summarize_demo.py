@@ -17,10 +17,14 @@ ap.add_argument("--tbt-slo", type=float, default=0.125, help="seconds")
 ap.add_argument("--keep-raw", action="store_true")
 a = ap.parse_args()
 home = pathlib.Path.home()
+# cgroup CPU throttling per benchmark run (bench/cgroup_cpu.py), when the run recorded it
+def throttled(D):
+    f = D / "cgroup_cpu.csv"
+    return {r["tag"]: r.get("throttled_s", "") for r in csv.DictReader(open(f))} if f.exists() else {}
 
 for D in a.dirs:
     D = pathlib.Path(D)
-    rows = []
+    rows, thr = [], throttled(D)
     for f in sorted(D.glob("*.json")):
         if f.name == "config.json":
             continue
@@ -34,7 +38,8 @@ for D in a.dirs:
                          **{k: round(d[k], 3) for k in ["mean_ttft_ms", "median_ttft_ms", "p99_ttft_ms",
                                                          "mean_tpot_ms", "p99_tpot_ms", "mean_itl_ms", "p99_itl_ms",
                                                          "mean_e2el_ms", "p99_e2el_ms"]},
-                         mean_input_len=round(sum(d["input_lens"]) / len(d["input_lens"]), 1)))
+                         mean_input_len=round(sum(d["input_lens"]) / len(d["input_lens"]), 1),
+                         cpu_throttled_s=thr.get(f.stem, "")))
     if not rows:
         print(f"{D}: no result JSON"); continue
     with open(D / "summary.csv", "w", newline="") as fh:
@@ -45,11 +50,14 @@ for D in a.dirs:
         good = [r["rate"] for r in rs if r["slo_attain_pct"] >= 90]
         print(f"  {mode:8s} " + "  ".join(f"{r['rate']:.1f}:{r['slo_attain_pct']:.0f}%" for r in rs)
               + f"   goodput >= {max(good) if good else 0:.1f} req/s")
+    hit = [r["run"] for r in rows if r["cpu_throttled_s"] not in ("", "0.0", "0")]
+    if hit:
+        print("  WARNING cgroup CPU throttling in: " + ", ".join(hit) + " (column cpu_throttled_s)")
     if not a.keep_raw:
         raw = home / "hyprefill_data/step00/layered_demo" / D.name
         raw.mkdir(parents=True, exist_ok=True)
         for f in D.iterdir():
-            if f.name not in ("config.json", "driver.log", "summary.csv"):
+            if f.name not in ("config.json", "driver.log", "summary.csv", "cgroup_cpu.csv"):
                 assert not (raw / f.name).exists(), raw / f.name
                 shutil.move(str(f), raw / f.name)
         print(f"  raw -> {raw}")

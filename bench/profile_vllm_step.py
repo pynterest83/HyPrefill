@@ -87,6 +87,7 @@ def sweep(a):
     """One engine per c (max_num_batched_tokens is an engine setting); per t: wall per step
     without profiler (median of --repeats requests), GPU busy per step from one profiled run."""
     import csv, subprocess
+    import cgroup_cpu; cg0 = cgroup_cpu.snapshot()
     from vllm import LLM, SamplingParams
     from vllm.config import ProfilerConfig
     from vllm.inputs import TokensPrompt
@@ -117,10 +118,11 @@ def sweep(a):
             import time
             p = lambda: TokensPrompt(prompt_token_ids=rng.integers(1000, 100000, t + c).tolist())
             llm.generate([p()], sp, use_tqdm=False)  # warmup
-            walls = []
+            walls, cg = [], cgroup_cpu.snapshot()
             for _ in range(a.repeats):
                 q = p(); t0 = time.perf_counter(); llm.generate([q], sp, use_tqdm=False)
                 walls.append((time.perf_counter() - t0) * 1e3)
+            cgd = cgroup_cpu.delta(cg); cgroup_cpu.warn(cgd, f"c={c} t={t}")
             before = set(glob.glob(str(prof / "**" / "*.json*"), recursive=True))
             llm.start_profile(); llm.generate([p()], sp, use_tqdm=False); llm.stop_profile()
             new = sorted(set(glob.glob(str(prof / "**" / "*.json*"), recursive=True)) - before)
@@ -134,7 +136,8 @@ def sweep(a):
                              wall_max_ms=max(walls), gpu_busy_total_ms=busy_total,
                              wall_step_ms=wall_step, gpu_busy_step_ms=busy_step,
                              host_overhead_step_ms=wall_step - busy_step,
-                             gpu_busy_frac=busy_step / wall_step if wall_step else float("nan")))
+                             gpu_busy_frac=busy_step / wall_step if wall_step else float("nan"),
+                             cpu_throttled_s=cgd.get("throttled_s", float("nan"))))
             r = rows[-1]
             print(f"c={c:5d} t={t:6d}: {n_steps} steps, wall/step {wall_step:7.2f} ms, GPU busy/step {busy_step:7.2f} ms "
                   f"-> host overhead {r['host_overhead_step_ms']:6.2f} ms ({100 * r['gpu_busy_frac']:.0f}% busy)", flush=True)
@@ -146,7 +149,7 @@ def sweep(a):
                           capture_output=True, text=True).stdout.strip().splitlines()
     json.dump({"model": model, "tp": a.tp, "sweep_c": a.sweep, "t": a.t_list, "repeats": a.repeats,
                "lock_mhz": os.environ.get("LOCK_MHZ"), "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES"),
-               "gpus": gpus, "note": "wall = blocking LLM.generate of one request without profiler (median of repeats); "
+               "gpus": gpus, "cgroup_cpu": cgroup_cpu.delta(cg0), "note": "wall = blocking LLM.generate of one request without profiler (median of repeats); "
                "busy = sum of GPU kernel durations of one profiled request; per step = / ceil((t + c) / c)"}, open(d / "config.json", "w"), indent=2)
     print(f"wrote {d.relative_to(REPO)}/ (traces in {raw})")
 

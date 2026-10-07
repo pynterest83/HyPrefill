@@ -21,11 +21,13 @@ for d in sorted(glob.glob(os.path.join(sys.argv[1], "*/"))):
         nv = sorted(glob.glob(os.path.join(d, "nvtx*_nvtx_sum.csv")))
         runs = ""
         if nv:
-            for r in csv.DictReader(open(nv[0])):
-                if "ModelRunner::run" in r.get("Range", "") and "model" not in r.get("Range", "").lower():
-                    runs = f"ModelRunner::run: {r.get('Instances')} calls, median {float(r.get('Med (ns)', 0)) / 1e6:.2f} ms"
+            ph = {r["Range"].split("::")[-1]: r for r in csv.DictReader(open(nv[0])) if "ModelRunner::" in r.get("Range", "")}
+            if "run" in ph:
+                runs = (f"ModelRunner::run: {ph['run']['Instances']} calls, median {float(ph['run']['Med (ns)']) / 1e6:.2f} ms"
+                        + " | CPU-side totals (s, both ranks): " + " ".join(
+                            f"{k} {float(ph[k]['Total Time (ns)']) / 1e9:.1f}" for k in ("run", "run_model", "prepare", "sample") if k in ph))
         print(f"{os.path.basename(d.rstrip('/')):8s} (nsys, both ranks): GPU kernel time {tot / 1e9:.2f} s | "
-              + " ".join(f"{c} {100 * v / tot:.0f}%" for c, v in by.most_common()) + (f" | {runs}" if runs else ""))
+              + " ".join(f"{c} {100 * v / tot:.0f}% ({v / 1e9:.1f} s)" for c, v in by.most_common()) + (f"\n   {runs}" if runs else ""))
         top = sorted(((float(r[tcol]), r["Name"][:70]) for r in rows if re.search(CATS[0][1], r["Name"])), reverse=True)[:3]
         print("   top MoE kernels (s):", [(n, round(t / 1e9, 2)) for t, n in top])
         continue

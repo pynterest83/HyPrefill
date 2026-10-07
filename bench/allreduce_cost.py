@@ -32,6 +32,7 @@ def main():
     from vllm.distributed import tensor_model_parallel_all_reduce
     from vllm.distributed.parallel_state import (graph_capture, init_distributed_environment,
                                                  initialize_model_parallel)
+    import cgroup_cpu; cg0 = cgroup_cpu.snapshot()
     rank, world = int(os.environ["RANK"]), int(os.environ["WORLD_SIZE"])
     torch.cuda.set_device(int(os.environ["LOCAL_RANK"]))
     dev = torch.device("cuda", int(os.environ["LOCAL_RANK"]))
@@ -82,7 +83,7 @@ def main():
                               capture_output=True, text=True).stdout.strip().splitlines()
         json.dump({"hidden": a.hidden, "world": world, "k": a.k, "gpus": gpus,
                    "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES"),
-                   "lock_mhz": os.environ.get("LOCK_MHZ"), "torch": torch.__version__,
+                   "lock_mhz": os.environ.get("LOCK_MHZ"), "cgroup_cpu": cgroup_cpu.delta(cg0), "torch": torch.__version__,
                    "date": datetime.datetime.now().isoformat(timespec="seconds")}, open(d / "config.json", "w"), indent=2)
         print(f"wrote {d.relative_to(REPO)}/")
 
