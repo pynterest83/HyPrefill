@@ -49,6 +49,13 @@ Mẫu: **Làm gì** · **Số liệu chính** · **Bất ngờ** · **Bị chặ
 - Bị chặn: GPU 4–7 bị server vLLM TP4 của dự án khác chiếm (cùng tài khoản); dump routing 192 request hỏng ở `init_device`; clock từng mất khoá sau khi pod được cấp lại tài nguyên.
 - Tiếp: KT1 (`moe_mixed --routing`, 3 lần lấy mẫu, D ∈ {8, 32, 64}) và dump 192 request khi GPU trống và khoá 1980 MHz; chạy lại KT2 với `--kt1`.
 
+### 2026-10-08 (chuyển sang hyprefill-dev-0, KT1, KT2 với MoE đo thật)
+- Làm gì: dựng máy mới (`AGENTS.md`, `results/env/2026-10-08_hyprefill-dev-0/`), clock khoá 1980 MHz, GPU 4–7 trống; dump lại routing 192 request arXiv (Qwen3-Next TP2); KT1 `moe_mixed --routing`, 3 lần rút ghép cặp theo D (`bench/run_kt1.sh`, `bench/kt1_eval.py`); chạy lại KT2 với `--kt1`.
+- Số liệu chính: KT1 **GO**: inc(D, 2048) / 4·inc(D, 512) = 0.41 / 0.45 / 0.48 và f = 23.9 / 19.6 / 16.9% ở D = 8 / 32 / 64 (3 lần rút: 0.40–0.52). KT2 (h0 = 10 ms): KT2-a HyPrefill / max(đồng nhất, Layered) tối đa 1.04 → **KILL**; KT2-b pipeline / đồng nhất tối đa 1.875 → **GO** (h0 = 0: 1.07 / 2.29).
+- Bất ngờ: tiết kiệm MoE khi gom chunk lớn hơn nhiều so với ước lượng 06/10 (6–7%), nhưng chunk 2048 chỉ chạm thêm ~20% expert so với 512 → phần lớn tiết kiệm là hiệu suất kernel `fused_moe` khi mỗi expert có nhiều token, không chỉ phần đọc weight (suy luận, chưa đo tách). Layered k = 1 với chunk lớn lấy gần hết phần đó.
+- Bị chặn: không. Lỗi chia cho 0 ở c = 0 của `op_cost.py` đã sửa; thư mục của lượt hỏng đã xoá.
+- Tiếp: phân tích vì sao tách chunk theo operator chỉ thêm ≤ 4% (ràng buộc nào chặn Layered), rồi quyết hướng theo PROPOSAL §5 (KT2-b).
+
 ---
 
 ## Ý tưởng để dành (không code trong lúc chạy kế hoạch)

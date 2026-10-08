@@ -353,7 +353,7 @@ def load_routing(path, seed=0):
     for f in sorted(_g.glob(f"{path}/req_*.npz")):
         z = _np.load(f)
         reqs.append((z["experts"].astype(_np.int64), int(z["prompt_len"])))
-    return {"reqs": reqs, "rng": _np.random.default_rng(seed)}
+    return {"reqs": reqs, "seed": seed}
 
 
 def make_moe_mixed(shape, bd, c, dev, dtype):
@@ -379,7 +379,9 @@ def make_moe_mixed(shape, bd, c, dev, dtype):
         tw, ti, _ = fused_topk(x, F.linear(x, w_router), k, bool(shape["renormalize"]))
     else:
         import numpy as _np
-        reqs, rng = ROUTING["reqs"], ROUTING["rng"]
+        # seeded by (seed, bd): every c of one decode batch draws the same decode tokens and prefill
+        # request, so inc(bd, c) = moe_mixed(bd, c) - moe_mixed(bd, 0) is a paired difference
+        reqs, rng = ROUTING["reqs"], _np.random.default_rng((ROUTING["seed"], bd))
         layer = reqs[0][0].shape[1] // 2
         idx = rng.permutation(len(reqs))
         assert bd < len(reqs), f"routing dump has {len(reqs)} requests, need > {bd}"
@@ -619,6 +621,7 @@ def main():
     ap.add_argument("--kv-layout", choices=["paged", "contiguous"], default="paged")
     ap.add_argument("--decode-batch", default="8,32,64,128", help="decode batch sizes for op moe_mixed")
     ap.add_argument("--routing", default=None, help="routing dump dir (bench/moe_routing_dump.py) for moe_mixed")
+    ap.add_argument("--routing-seed", type=int, default=0, help="seed of the routing draws for moe_mixed (one run = one draw)")
     ap.add_argument("--tp", type=int, default=1, help="tensor parallel size; shapes are per GPU")
     ap.add_argument("--shape", default="", help="override per-GPU shapes, e.g. gdn.v_heads=8,gdn.d_k=64 "
                     "(plan/01 §2.4: vary heads and d_k/d_v to split intra- from inter-chunk cost)")
@@ -631,7 +634,7 @@ def main():
     global GDN_BACKEND, KV_LAYOUT, DECODE_B, ROUTING
     GDN_BACKEND, KV_LAYOUT = a.gdn_backend, a.kv_layout
     DECODE_B = [int(x) for x in a.decode_batch.split(",")]
-    ROUTING = load_routing(a.routing) if a.routing else None
+    ROUTING = load_routing(a.routing, a.routing_seed) if a.routing else None
     dev, dtype = "cuda:0", torch.bfloat16
     shapes = load_shapes(a.config, a.tp)
     for kv in filter(None, a.shape.split(",")):
@@ -663,7 +666,7 @@ def main():
             "cmd": " ".join(shlex.quote(x) for x in sys.argv), "clock_locked": a.clock_locked,
             "gdn_state": a.gdn_state, "gdn_backend": a.gdn_backend, "fa_version": a.fa_version,
             "kv_layout": a.kv_layout, "lock_mhz": os.environ.get("LOCK_MHZ"),
-            "routing": a.routing, "decode_batch": a.decode_batch, "warmup": a.warmup, "iters": a.iters}
+            "routing": a.routing, "routing_seed": a.routing_seed, "decode_batch": a.decode_batch, "warmup": a.warmup, "iters": a.iters}
     (d / "config.json").write_text(json.dumps(meta, indent=2))
 
     raw = csv.writer(open(d / "raw.csv", "w", newline=""))
@@ -722,13 +725,13 @@ def main():
                         raw.writerow([op, c, t, mode, i, f"{ms:.5f}"])
                 s = stats(samples)
                 summ.writerow([op, shape["layers"], c, t, f"{s['p50']:.5f}", f"{s['p99']:.5f}",
-                               f"{s['min']:.5f}", f"{s['max']:.5f}", s["n"], f"{s['p50'] * 1000 / c:.4f}",
+                               f"{s['min']:.5f}", f"{s['max']:.5f}", s["n"], f"{s['p50'] * 1000 / c:.4f}" if c else "",
                                f"{stats(eager)['p50']:.5f}", f"{h_ms:.5f}", k_graph, f"{flush_ms:.5f}", method, MOE_TOUCHED[0] if op in ("moe", "moe_mixed") else "",
                                f"{peak_a:.1f}", f"{peak_r:.1f}", f"{clk_mean:.0f}", clk_min, f"{pw_max:.0f}",
                                util_pre, f"{foreign:.0f}"])
                 summ_f.flush()
                 print(f"{op:3s} c={c:5d} t={t:6d}  gpu p50={s['p50']:.4f} ms  p99={s['p99']:.4f}  "
-                      f"{s['p50'] * 1000 / c:.3f} us/tok  eager={stats(eager)['p50']:.4f}  host={h_ms:.4f}  "
+                      f"{s['p50'] * 1000 / max(c, 1):.3f} us/tok  eager={stats(eager)['p50']:.4f}  host={h_ms:.4f}  "
                       f"peak={peak_a:.0f} MiB  clk={clk_mean:.0f}/{clk_min} MHz  {pw_max:.0f} W"
                       + (f"  WARNING other load: util={util_pre}% mem={foreign:.0f} MiB" if util_pre > 5 or foreign > 2048 else ""))
                 del fn

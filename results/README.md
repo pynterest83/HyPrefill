@@ -16,6 +16,9 @@
 | `step02/cost_tables/` | Bảng MoE, decode, Qwen3-30B-A3B gộp từ GPU 6, 7; từng lượt ở `step02/2026-09-30_s02_*` |
 | `step02/moe_overlap_*.csv` | Routing MoE thật (Qwen3-Next, arXiv, 64 request): số expert decode và chunk prefill chạm, phần prefill thêm vào; dump thô ở `~/hyprefill_data/step02/moe_routing/` |
 | `step02/kt2_capacity_*_estimate.csv` | KT2 (PROPOSAL §5, sửa 07/10): dung lượng prefill mỗi iteration, đồng nhất / Layered / HyPrefill, MoE **ước lượng** (cảnh báo sớm, chưa có KT1); `_kt1.csv` khi có KT1 |
+| `step02/2026-10-08_s02_*_kt1_draw{0,1,2}/` | KT1 (máy hyprefill-dev-0, GPU 4, 1980 MHz): `moe_mixed` routing thật (dump 192 request, `~/hyprefill_data/step02/moe_routing/2026-10-08_*`), D ∈ {8, 32, 64}, c ∈ {0 … 8192}, 3 lần rút ghép cặp theo D |
+| `step02/kt1_eval_*_2026-10-08.csv` | Kết luận KT1 (`bench/kt1_eval.py`): inc(D, c), tỉ lệ 2048 / 4×512, f. **GO** |
+| `step02/kt2_capacity_*_kt1.csv` | KT2 với MoE đo thật (KT1): KT2-a KILL (1.04), KT2-b GO (1.875) |
 | `step02/*g1c*`, `step02/oracle_*`, `step02/sim_*` | (sẽ có) G1c, oracle, mô phỏng |
 
 ## Dữ liệu cũ, không trộn với chuẩn mới (ở `~/hyprefill_data/` trên server)
