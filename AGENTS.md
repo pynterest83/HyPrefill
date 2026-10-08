@@ -28,7 +28,7 @@ bash scripts/record_env.sh                                        # ảnh chụp
 python bench/sim_tokenflow.py --model Qwen3-Next-80B-A3B-Instruct_tp2
 ```
 
-Không có build, lint hay bộ test.
+Không có build, lint hay bộ test. Dựng trên máy khác: `docs/11_SETUP_NEW_SERVER.md`.
 
 ## Các phần ghép với nhau thế nào
 
@@ -57,7 +57,7 @@ Là container chạy trên máy 8×H200: 192 luồng CPU, 2 TiB RAM, 4 NUMA node
 - Container bị giới hạn **32 core CPU** bởi cgroup (`/sys/fs/cgroup/cpu.max`). Vòng lặp engine là Python đơn luồng nên thêm core không giúp gì, nhưng bị bóp CPU thì GPU phải chờ. Mọi script đo ghi số lần bị bóp (`bench/cgroup_cpu.py`, `docs/03_MEASUREMENT.md` §1); lượt nào có `nr_throttled` > 0 thì kiểm lại số đo theo thời gian thực.
 - GPU dùng chung với container khác. Tiến trình của container khác không hiện trong `nvidia-smi`, nên trước khi đo phải xem `memory.used` và `utilization.gpu`. GPU đang có tải thì số đo không dùng được.
 - Việc chạy lâu (tải model, chạy benchmark dài) phải chạy trong tmux để không chết khi VS Code/SSH ngắt: `tmux new -d -s hyprefill-dl 'bash scripts/download_models.sh [repo ...]'`, xem bằng `tmux attach -t hyprefill-dl`, log ở `~/hyprefill_data/download_*.log`.
-- **Nsight Systems 2026.3.2** đã cài (`/usr/local/bin/nsys`, từ kho CUDA của NVIDIA; bản trong kho Ubuntu là 2022.4, quá cũ). Dùng `nsys profile -t cuda,nvtx --sample=none --cpuctxsw=none`: lấy mẫu CPU không chạy được trong container (perf_event_open bị chặn, paranoid level 4), còn ghi CUDA và NVTX thì được.
+- **Nsight Systems 2026.3.2** cài bằng `sudo apt-get install -y nsight-systems-2026.3.2` (kho CUDA của NVIDIA đã có trong `/etc/apt/sources.list.d/cuda.list`; bản trong kho Ubuntu là 2022.4, quá cũ). **Mọi thứ cài bằng apt nằm ngoài `$HOME` mất khi pod khởi động lại** (đã mất nsys ngày 07/10), còn conda env, model và dữ liệu trong `$HOME` thì giữ; sau mỗi lần pod restart chạy lại lệnh trên và kiểm lại khoá clock. Dùng `nsys profile -t cuda,nvtx --sample=none --cpuctxsw=none`: lấy mẫu CPU không chạy được trong container (perf_event_open bị chặn, paranoid level 4), còn ghi CUDA và NVTX thì được.
 - Khi đo, ghim CPU cùng NUMA node với GPU: GPU0-1 → CPU 0-23, GPU2-3 → 24-47, GPU4-5 → 48-71, GPU6-7 → 72-95 (ví dụ `CUDA_VISIBLE_DEVICES=4 taskset -c 48-71 python ...`).
 
 ## Quy tắc đo (docs/03_MEASUREMENT.md)

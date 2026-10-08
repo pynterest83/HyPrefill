@@ -53,7 +53,7 @@ for mode in ${MODES:-chunked layered}; do
   # under nsys the server runs in nsys' own process group, out of reach of the kill above
   pkill -TERM -f "^[^ ]*python -m nanovllm.entrypoints.api_server.*--port $port" 2>/dev/null; sleep 10
   pkill -KILL -f "^[^ ]*python -m nanovllm.entrypoints.api_server.*--port $port" 2>/dev/null
-  pkill -KILL -f "^/home/quangch1/miniforge3/envs/layered-prefill/bin/python" 2>/dev/null
+  pkill -KILL -f "^$CONDA_PREFIX/bin/python" 2>/dev/null  # the fork env's leftover workers
   for _ in $(seq 60); do [[ $(nvidia-smi -i "$GPUS" --query-gpu=memory.used --format=csv,noheader,nounits | sort -n | tail -1) -lt 1000 ]] && break; sleep 5; done
 done
 conda activate hyprefill
