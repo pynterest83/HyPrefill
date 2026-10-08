@@ -42,6 +42,13 @@ Mẫu: **Làm gì** · **Số liệu chính** · **Bất ngờ** · **Bị chặ
 - Bị chặn: chưa kiểm riêng giả thuyết "CPU ăn mất phần GPU tiết kiệm" (cần giảm phần CPU của layered hoặc chạy trên H100).
 - Tiếp: bước 1 còn mở (mô hình phần CPU, §2.5 cho Qwen3-Next TP2), bước 2 (`moe_mixed` với routing thật, G1c trên model thật).
 
+### 2026-10-07 (phản biện bản quét lại, KT2 sớm)
+- Làm gì: đối chiếu `docs/09` với số đo (`docs/10_REBUTTAL_2026-10-07.md`); sửa tiêu chí KT1/KT2 trước khi chạy (PROPOSAL §5); viết `bench/kt2_capacity.py` (dung lượng trạng thái ổn định, ba policy, all-reduce, CPU); thêm `bench/cgroup_cpu.py` vào mọi script đo.
+- Số liệu chính: KT2 với MoE ước lượng, h0 = 10 ms: HyPrefill / max(đồng nhất, Layered) tối đa 1.04 (KILL KT2-a), pipeline / đồng nhất tối đa 1.71 ở t ≥ 64K (GO KT2-b).
+- Bất ngờ: bản sim cũ cho phép một sublayer chạy nhiều lần mỗi iteration và tính MoE decode tách riêng; bản đầu của kt2 tính "một lần chạy" là cả 12 layer attention (ép Layered dùng chunk nhỏ), đã sửa trước khi chạy cả lưới.
+- Bị chặn: GPU 4–7 bị server vLLM TP4 của dự án khác chiếm (cùng tài khoản); dump routing 192 request hỏng ở `init_device`; clock từng mất khoá sau khi pod được cấp lại tài nguyên.
+- Tiếp: KT1 (`moe_mixed --routing`, 3 lần lấy mẫu, D ∈ {8, 32, 64}) và dump 192 request khi GPU trống và khoá 1980 MHz; chạy lại KT2 với `--kt1`.
+
 ---
 
 ## Ý tưởng để dành (không code trong lúc chạy kế hoạch)

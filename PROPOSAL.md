@@ -343,6 +343,15 @@ Theo đúng cách baseline chính (Layered Prefill, arXiv 2510.08055 §6) và SL
 - **KT1:** `op_cost.py --op moe_mixed --routing <dump>`, D ∈ {32, 64}, c ∈ {256, 512, 2048}. GO nếu một chunk 2048 có chi phí thêm ≤ 0.6× tổng của bốn chunk 512, và tiết kiệm ≥ 8% iteration 50 ms.
 - **KT2:** simulator bước 3 với routing thật, append-prefill t ≥ 64K, Δ ∈ {2K, 4K, 8K}. GO nếu ≥ 1.25× so với chunk đồng nhất đã tune và SLOWeave ở ít nhất một ô. Nếu < 1.10× ở mọi ô thì chuyển sang phương án lui đo đạc ("chi phí cố định mỗi iteration", `docs/09` §5).
 
+**Sửa KT1, KT2 (07/10/2026, trước khi chạy; lý do ở `docs/10_REBUTTAL_2026-10-07.md`).** Chưa có số KT1/KT2 nào khi sửa. Ngưỡng G1a, G1b, G1c, G2 vẫn giữ nguyên.
+- **KT1, đổi mẫu số.** Tiêu chí cũ "tiết kiệm ≥ 8% iteration 50 ms" chia cho cả phần decode. Thứ quyết định goodput là chi phí mỗi token prefill. Đo `inc(D, c) = moe_mixed(D, c) − moe_mixed(D, 0)` (mỗi layer, routing thật, trung bình 3 lần lấy mẫu routing). Phần tiết kiệm mỗi token khi gom 512 → 2048: `s = 48 · [inc(D, 512)/512 − inc(D, 2048)/2048]`. Tỉ lệ `f = s / chi phí GPU mỗi token prefill của chunk đồng nhất 512 ở t = 128K` (bảng cost bước 1, MoE thay bằng `inc`).
+  - GO: `inc(D, 2048) ≤ 0.6 × 4 · inc(D, 512)` (giữ nguyên) **và** `f ≥ 10%` ở D = 32.
+  - KILL nhánh khấu hao MoE: `f < 5%` ở cả D = 32 và D = 64.
+  - Ở giữa: không quyết ở KT1, để KT2 quyết.
+- **KT2, thêm Layered vào mẫu số.** Bản cũ so HyPrefill với chunk đồng nhất và SLOWeave, tức gán gain của pipeline theo chiều sâu cho HyPrefill (đúng lỗi §4.3 cảnh báo). Thay bằng mô hình dung lượng ở trạng thái ổn định (`bench/kt2_capacity.py`): MoE theo KT1, có all-reduce TP2, CPU mỗi iteration (thời gian iteration = max(GPU, CPU); CPU = h0 + `host_ms` của các lần gọi chạy eager; quyết bằng h0 = 10 ms, báo kèm h0 = 0 và 20 ms), lưới B ∈ {25, 50, 100} ms, D ∈ {8, 32, 64}, t ∈ {64K, 128K, 256K}, Δ ∈ {2K, 4K, 8K}. Ba policy: chunk đồng nhất đã tune (ở trạng thái ổn định với một t thì SLOWeave trùng với nó), Layered k = 1 (pipeline, một chunk n ≤ Δ cho mọi sublayer), HyPrefill (chunk riêng cho attention, GDN, MoE).
+  - **KT2-a** (cảnh báo sớm cho G1b, cùng ngưỡng): HyPrefill / max(đồng nhất, Layered) ≥ 1.25× ở ít nhất một ô thì giữ cách đặt vấn đề hiện tại. < 1.10× ở mọi ô thì bỏ headline "HyPrefill / Layered", chuyển sang KT2-b.
+  - **KT2-b** (hướng đặt lại vấn đề: scheduler theo nhóm layer cho hybrid, nhận biết CPU, trong vLLM): max(Layered, HyPrefill) / đồng nhất ≥ 1.20× (ngưỡng G1a) ở ít nhất một ô t ≥ 64K thì hướng này còn sống, với điều kiện bản cài trong vLLM giữ phần CPU mỗi iteration ngang chunked. < 1.10× ở mọi ô thì chuyển sang phương án lui đo đạc (`docs/09` §5).
+
 **Câu hỏi độ bền bắt buộc trả lời ở G1:** trên Qwen3.8-Flash-Next (sparse attention), gain còn bao nhiêu? Nếu < 1.10 ở mọi t ≤ 256K thì claim thu hẹp về họ full-attention hybrid và nộp sớm.
 
 ---

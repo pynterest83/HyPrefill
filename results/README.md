@@ -15,6 +15,7 @@
 | `step01/2026-09-30_validate_forward*/` | §2.5 làm lại: t = 0 đã sửa; có decode chạy song song (`decode_extra_cost.csv`: mô hình `mixed` khớp ở c ≥ 2048) |
 | `step02/cost_tables/` | Bảng MoE, decode, Qwen3-30B-A3B gộp từ GPU 6, 7; từng lượt ở `step02/2026-09-30_s02_*` |
 | `step02/moe_overlap_*.csv` | Routing MoE thật (Qwen3-Next, arXiv, 64 request): số expert decode và chunk prefill chạm, phần prefill thêm vào; dump thô ở `~/hyprefill_data/step02/moe_routing/` |
+| `step02/kt2_capacity_*_estimate.csv` | KT2 (PROPOSAL §5, sửa 07/10): dung lượng prefill mỗi iteration, đồng nhất / Layered / HyPrefill, MoE **ước lượng** (cảnh báo sớm, chưa có KT1); `_kt1.csv` khi có KT1 |
 | `step02/*g1c*`, `step02/oracle_*`, `step02/sim_*` | (sẽ có) G1c, oracle, mô phỏng |
 
 ## Dữ liệu cũ, không trộn với chuẩn mới (ở `~/hyprefill_data/` trên server)
