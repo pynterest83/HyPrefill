@@ -2,6 +2,7 @@
 # HyPrefill — one-time setup on the 8×H200 server. Run from the repo root:
 #   bash scripts/setup_server.sh            # env + checks + step-0 models
 #   bash scripts/setup_server.sh --no-models
+#   SKIP_CHECK=1 bash scripts/setup_server.sh   # skip step 6 (it runs kernels on a GPU)
 #
 # Safe to re-run: every step skips work that is already done.
 # Needs no root. Clock locking (step 1+) is checked but not required here.
@@ -87,7 +88,11 @@ mkdir -p third_party
 #   (cd third_party/vllm && pip install -e .)
 
 say "6. Environment check"
-python scripts/check_env.py
+if [[ "${SKIP_CHECK:-0}" == 1 ]]; then
+  echo "SKIP_CHECK=1: not running scripts/check_env.py (it benchmarks FA3 and GDN on GPU 0)"
+else
+  python scripts/check_env.py
+fi
 
 if [[ "$DOWNLOAD_MODELS" == 1 ]]; then
   say "7. Step-0 models (resumable; re-run if interrupted)"

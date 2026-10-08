@@ -38,7 +38,18 @@ Không có build, lint hay bộ test. Dựng trên máy khác: `docs/11_SETUP_NE
 - **Cách đặt vấn đề then chốt:** so sánh headline là **HyPrefill / Layered Prefill**, không phải HyPrefill / Sarathi. So với Sarathi sẽ gán nhầm gain của pipeline theo chiều sâu cho HyPrefill (PROPOSAL §4.3).
 - **Ràng buộc kernel:** HyPrefill chỉ đổi số token scheduler đưa vào mỗi lần gọi. Không bao giờ đổi chunk size của kernel GDN (`FLA_CHUNK_SIZE` = 64). Chunk size của GDN là bội của 64; chunk của attention nên là bội của 128, vì FA3 có bậc thang theo tile 128 (bước 1: c = 129 đắt hơn c = 128 rõ rệt).
 
-## Server (quangch1-dev-0, kiểm tra 28/09/2026)
+## Server hiện tại (hyprefill-dev-0, dựng 08/10/2026)
+
+Máy mới thay `quangch1-dev-0`: user `hyprefill`, `$HOME=/home/hyprefill` (NVMe 3.5 TB), repo ở `~/work/HyPrefill`, 8×H200, 192 luồng CPU, 2 TiB RAM, `sudo` không cần mật khẩu, CUDA 13.0 ở `/usr/local/cuda`. Bố cục NUMA/GPU giống máy cũ (GPU0-1 → CPU 0-23, 2-3 → 24-47, 4-5 → 48-71, 6-7 → 72-95). Khác máy cũ:
+- cgroup cho **128 core** (`cpu.max` = 12800000/100000), không phải 32.
+- `/mnt/models/hf` chỉ có model nhỏ (Qwen3-0.6B, Qwen3.5-2B…), **không có** model của HyPrefill. Ba model bước 0 (Qwen3-Next-80B-A3B-Instruct, Qwen3.8-27B, Qwen3-30B-A3B, tổng 261 GB) đã tải về `~/hf_cache`. Đã tải thêm Qwen3.8-Flash-Next-FP8 và Kimi-Linear-48B-A3B-Instruct (tổng `~/hf_cache` 525 GB). `gh` đã đăng nhập (pynterest83), Node 18 đã cài.
+- Env `hyprefill` (vllm 0.30.0, torch 2.13.0+cu130) và `layered-prefill` (torch 2.8.0+cu128, flash-attention build xong) đã dựng; nsys 2026.3.2 đã cài bằng apt (mất khi pod restart). Ảnh chụp môi trường: `results/env/2026-10-08_hyprefill-dev-0/`.
+- `check_env.py` đã chạy OK trên GPU 4 (FA3, GDN FlashInfer). Clock **đã được khoá 1980 MHz** (GPU nhàn rỗi đứng ở 1980, 08/10/2026). GPU 0–3 thường có job của container khác; GPU 4–7 trống lúc kiểm tra: luôn xem `memory.used` và `utilization.gpu` trước khi đo. Chưa có lượt đo nào trên máy này; số đo là bộ số mới, không trộn với `~/hyprefill_data/clk1830/` hay số của máy cũ.
+- Các script điều phối gán sẵn GPU 4–7 (`run_campaign_1980.sh`, `run_gpu45_*.sh`, `run_gpu67_*.sh`): xem GPU nào thực sự trống rồi truyền `GPU=`/`CPUS=`.
+
+Phần dưới là ghi chú của máy cũ; đường dẫn `/home/quangch1` tương ứng `$HOME` ở máy mới.
+
+## Server cũ (quangch1-dev-0, kiểm tra 28/09/2026)
 
 Là container chạy trên máy 8×H200: 192 luồng CPU, 2 TiB RAM, 4 NUMA node, có `sudo` không cần mật khẩu. **Nhưng root trong container không khoá được clock GPU** (`nvidia-smi -lgc` báo không có quyền), phải nhờ admin khoá ở host. **Mức khoá chuẩn: 1980 MHz** (mức boost tối đa của H200, từ 2026-09-29; lúc nhàn rỗi clock đứng ở 1980, chưa khoá thì ~345). Số đo cũ ở 1830 MHz (28–29/09) đã chuyển sang `~/hyprefill_data/clk1830/`, không trộn với số mới. `bench/run_step01.sh` tự nhận ra khoá này và không mở nó. Khoá vẫn tụt khi chạm trần 700 W (FA3 ở context dài), nên clock và công suất được ghi theo từng dòng đo. Số đưa vào paper phải đo khi clock đã khoá; `bench/run_step01.sh` dừng hẳn nếu khoá thất bại, còn `LOCK=0` chỉ dùng cho lượt đo tham khảo.
 
