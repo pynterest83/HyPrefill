@@ -1,0 +1,155 @@
+{
+  "date": "2026-10-08T08:16:15",
+  "model_config": "/home/hyprefill/work/HyPrefill/results/step00/configs/Qwen_Qwen3-Next-80B-A3B-Instruct.json",
+  "tp": 2,
+  "shape": {
+    "layers": 48,
+    "hidden": 2048,
+    "experts": 512,
+    "topk": 10,
+    "inter": 256,
+    "shared_inter": 256,
+    "renormalize": 1
+  },
+  "config_file": "E=512,N=256,device_name=NVIDIA_H200.json",
+  "candidates": {
+    "M1": {
+      "BLOCK_SIZE_M": 16,
+      "BLOCK_SIZE_N": 32,
+      "BLOCK_SIZE_K": 64,
+      "GROUP_SIZE_M": 1,
+      "num_warps": 4,
+      "num_stages": 4
+    },
+    "M2": {
+      "BLOCK_SIZE_M": 32,
+      "BLOCK_SIZE_N": 128,
+      "BLOCK_SIZE_K": 64,
+      "GROUP_SIZE_M": 1,
+      "num_warps": 4,
+      "num_stages": 4
+    },
+    "M4": {
+      "BLOCK_SIZE_M": 16,
+      "BLOCK_SIZE_N": 128,
+      "BLOCK_SIZE_K": 64,
+      "GROUP_SIZE_M": 1,
+      "num_warps": 4,
+      "num_stages": 3
+    },
+    "M16": {
+      "BLOCK_SIZE_M": 16,
+      "BLOCK_SIZE_N": 64,
+      "BLOCK_SIZE_K": 64,
+      "GROUP_SIZE_M": 16,
+      "num_warps": 4,
+      "num_stages": 3
+    },
+    "M24": {
+      "BLOCK_SIZE_M": 16,
+      "BLOCK_SIZE_N": 128,
+      "BLOCK_SIZE_K": 128,
+      "GROUP_SIZE_M": 1,
+      "num_warps": 8,
+      "num_stages": 3
+    },
+    "M48": {
+      "BLOCK_SIZE_M": 16,
+      "BLOCK_SIZE_N": 64,
+      "BLOCK_SIZE_K": 128,
+      "GROUP_SIZE_M": 64,
+      "num_warps": 4,
+      "num_stages": 2
+    },
+    "M96": {
+      "BLOCK_SIZE_M": 16,
+      "BLOCK_SIZE_N": 64,
+      "BLOCK_SIZE_K": 128,
+      "GROUP_SIZE_M": 16,
+      "num_warps": 4,
+      "num_stages": 2
+    },
+    "M128": {
+      "BLOCK_SIZE_M": 16,
+      "BLOCK_SIZE_N": 128,
+      "BLOCK_SIZE_K": 128,
+      "GROUP_SIZE_M": 1,
+      "num_warps": 8,
+      "num_stages": 2
+    },
+    "M512": {
+      "BLOCK_SIZE_M": 16,
+      "BLOCK_SIZE_N": 256,
+      "BLOCK_SIZE_K": 128,
+      "GROUP_SIZE_M": 1,
+      "num_warps": 8,
+      "num_stages": 2
+    },
+    "M1024": {
+      "BLOCK_SIZE_M": 32,
+      "BLOCK_SIZE_N": 128,
+      "BLOCK_SIZE_K": 64,
+      "GROUP_SIZE_M": 1,
+      "num_warps": 4,
+      "num_stages": 3
+    },
+    "M1536": {
+      "BLOCK_SIZE_M": 64,
+      "BLOCK_SIZE_N": 128,
+      "BLOCK_SIZE_K": 64,
+      "GROUP_SIZE_M": 1,
+      "num_warps": 4,
+      "num_stages": 3
+    },
+    "M2048": {
+      "BLOCK_SIZE_M": 64,
+      "BLOCK_SIZE_N": 128,
+      "BLOCK_SIZE_K": 64,
+      "GROUP_SIZE_M": 32,
+      "num_warps": 4,
+      "num_stages": 2
+    },
+    "M4096": {
+      "BLOCK_SIZE_M": 128,
+      "BLOCK_SIZE_N": 128,
+      "BLOCK_SIZE_K": 64,
+      "GROUP_SIZE_M": 1,
+      "num_warps": 8,
+      "num_stages": 3
+    }
+  },
+  "routing": "/home/hyprefill/hyprefill_data/step02/moe_routing/2026-10-08_models--Qwen--Qwen3-Next-80B-A3B-Instruct_arxiv",
+  "gpu": [
+    {
+      "index": "4",
+      "name": "NVIDIA H200",
+      "memory.used": "628",
+      "memory.total": "143771",
+      "utilization.gpu": "2",
+      "clocks.sm": "1980",
+      "clocks.max.sm": "1980",
+      "temperature.gpu": "32"
+    }
+  ],
+  "cuda_visible_devices": "4",
+  "python": "3.12.15",
+  "torch": "2.13.0+cu130",
+  "cuda": "13.0",
+  "vllm": "0.30.0",
+  "flashinfer": "0.6.18.post1",
+  "repo_commit": "27bca4449d013aa8638bb0834299f9fb63d88ce7",
+  "repo_dirty": true,
+  "cmd": "bench/moe_config_cf.py --clock-locked --routing /home/hyprefill/hyprefill_data/step02/moe_routing/2026-10-08_models--Qwen--Qwen3-Next-80B-A3B-Instruct_arxiv",
+  "clock_locked": true,
+  "warmup": 10,
+  "iters": 30,
+  "cgroup_cpu": {
+    "wall_s": 151.5,
+    "quota_cores": 128.0,
+    "nr_periods": 1515,
+    "nr_throttled": 0,
+    "throttled_s": 0.0,
+    "cpu_s": 313.3,
+    "mean_cores_used": 2.07
+  }
+}

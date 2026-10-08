@@ -18,7 +18,12 @@
 | `step02/kt2_capacity_*_estimate.csv` | KT2 (PROPOSAL §5, sửa 07/10): dung lượng prefill mỗi iteration, đồng nhất / Layered / HyPrefill, MoE **ước lượng** (cảnh báo sớm, chưa có KT1); `_kt1.csv` khi có KT1 |
 | `step02/2026-10-08_s02_*_kt1_draw{0,1,2}/` | KT1 (máy hyprefill-dev-0, GPU 4, 1980 MHz): `moe_mixed` routing thật (dump 192 request, `~/hyprefill_data/step02/moe_routing/2026-10-08_*`), D ∈ {8, 32, 64}, c ∈ {0 … 8192}, 3 lần rút ghép cặp theo D |
 | `step02/kt1_eval_*_2026-10-08.csv` | Kết luận KT1 (`bench/kt1_eval.py`): inc(D, c), tỉ lệ 2048 / 4×512, f. **GO** |
-| `step02/kt2_capacity_*_kt1.csv` | KT2 với MoE đo thật (KT1): KT2-a KILL (1.04), KT2-b GO (1.875) |
+| `step02/kt2_capacity_*_kt1.csv` | KT2 với MoE đo thật (KT1), **bản có lỗi NaN**: KT2-a ghi KILL (1.04) là sai, xem `*_kt1_fix.csv`; KT2-b GO (1.875) |
+| `step02/kt2_capacity_*_kt1_fix.csv` | KT2 sau khi sửa lỗi NaN (ô chunk đồng nhất không khả thi): KT2-a 1.18 → vùng giữa. **Dùng file này thay `*_kt1.csv`** |
+| `step02/2026-10-08_moe_diag/` | `fused_experts` theo số expert bị chạm × số token, routing đặt tay (`bench/moe_diag.py`) |
+| `step02/2026-10-08_moe_config_cf/` | KT1 dưới mọi cấu hình tune của `fused_moe` (`bench/moe_config_cf.py`); lượt mặc định tái hiện KT1 ≤ 1.1% |
+| `step02/kt1_eval_*_bestcfg.csv`, `kt2_capacity_*_kt1_bestcfg.csv` | KT1 / KT2 với cấu hình MoE tốt nhất mỗi ô: KT1 vùng chưa quyết (0.63), KT2-a 1.14, KT2-b 1.51 |
+| `step02/kt2_diag_*_2026-10-08/` | Chẩn đoán (`bench/kt2_diag.py`): chi phí mỗi token theo nhóm, bản đồ (t, P), độ nhạy g và `h_fire`; xem `docs/12` |
 | `step02/*g1c*`, `step02/oracle_*`, `step02/sim_*` | (sẽ có) G1c, oracle, mô phỏng |
 
 ## Dữ liệu cũ, không trộn với chuẩn mới (ở `~/hyprefill_data/` trên server)

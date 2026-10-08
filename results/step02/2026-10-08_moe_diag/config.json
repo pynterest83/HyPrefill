@@ -1,0 +1,49 @@
+{
+  "date": "2026-10-08T08:03:54",
+  "model_config": "/home/hyprefill/work/HyPrefill/results/step00/configs/Qwen_Qwen3-Next-80B-A3B-Instruct.json",
+  "tp": 2,
+  "shape": {
+    "layers": 48,
+    "hidden": 2048,
+    "experts": 512,
+    "topk": 10,
+    "inter": 256,
+    "shared_inter": 256,
+    "renormalize": 1
+  },
+  "bytes_per_expert": 3145728,
+  "gpu": [
+    {
+      "index": "4",
+      "name": "NVIDIA H200",
+      "memory.used": "628",
+      "memory.total": "143771",
+      "utilization.gpu": "2",
+      "clocks.sm": "1980",
+      "clocks.max.sm": "1980",
+      "temperature.gpu": "32"
+    }
+  ],
+  "cuda_visible_devices": "4",
+  "python": "3.12.15",
+  "torch": "2.13.0+cu130",
+  "cuda": "13.0",
+  "vllm": "0.30.0",
+  "flashinfer": "0.6.18.post1",
+  "repo_commit": "27bca4449d013aa8638bb0834299f9fb63d88ce7",
+  "repo_dirty": true,
+  "cmd": "bench/moe_diag.py --clock-locked",
+  "clock_locked": true,
+  "warmup": 10,
+  "iters": 30,
+  "timing": "graph [flush L2, fused_experts] x k minus flush",
+  "cgroup_cpu": {
+    "wall_s": 26.0,
+    "quota_cores": 128.0,
+    "nr_periods": 260,
+    "nr_throttled": 0,
+    "throttled_s": 0.0,
+    "cpu_s": 56.0,
+    "mean_cores_used": 2.15
+  }
+}

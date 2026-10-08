@@ -82,8 +82,13 @@ def load(model, kt1):
     return cfg, cost, allreduce, moe, host, src
 
 
-def capacity(cfg, cost, allreduce, moe, host, B, bd, t, delta, h0):
+def capacity(cfg, cost, allreduce, moe, host, B, bd, t, delta, h0, g=1, h_fire=0.0):
+    """g: decoder layers per firing (1 = finest; a firing of a group type covers the layers of that
+    type among g consecutive layers, at least one); h_fire: CPU ms per firing (scheduling and
+    metadata of one chunk segment), 0 = as before."""
     n_attn, n_gdn, n_lay = layers(cfg)
+    gl = {"A": max(1, round(g * n_attn / n_lay)), "G": max(1, round(g * n_gdn / n_lay)), "M": g}
+    nl = {"A": n_attn, "G": n_gdn, "M": n_lay}
     c = lambda op, n, tt=None: float(cost(op, n, tt)) if n > 0 else 0.0
     # decode-only iteration (all layers)
     D = (n_attn * (c("fa_decode", bd, t) + c("dense_attn", bd)) + n_gdn * (c("gdn_decode", bd) + c("dense_gdn", bd))
@@ -105,11 +110,14 @@ def capacity(cfg, cost, allreduce, moe, host, B, bd, t, delta, h0):
         for nA, nG, nM in cfgs:
             # one firing = one sublayer of one layer when pipelined (finest layer groups, same for
             # layered and hyprefill); uniform runs the full depth in its iteration, checked by R = c
-            if max(nA, nG, nM) > delta or max(I("A", nA) / n_attn, I("G", nG) / n_gdn, I("M", nM) / n_lay) > P:
+            ns = {"A": nA, "G": nG, "M": nM}
+            if max(nA, nG, nM) > delta or max(I(x, ns[x]) / nl[x] * gl[x] for x in ns) > P:
                 continue
             per_tok = I("A", nA) / nA + I("G", nG) / nG + I("M", nM) / nM
             # prefill GDN calls cost host time: n_gdn * R / nG per iteration
-            r_cpu = (B - cpu_base) / (n_gdn * host["gdn"] / nG) if n_gdn else np.inf
+            # and every firing h_fire: (layers / g) firings of each group type per n_s / R iterations
+            cpu_per_tok = (n_gdn * host["gdn"] / nG if n_gdn else 0.0) + h_fire * (1 / nA if uniform else sum(nl[x] / gl[x] / ns[x] for x in ns))
+            r_cpu = (B - cpu_base) / cpu_per_tok if cpu_per_tok > 0 else np.inf
             R = min(P / per_tok, r_cpu, nA, nG, nM)
             lim = min((P / per_tok, "gpu"), (r_cpu, "cpu"), (min(nA, nG, nM), "chunk"))[1]
             if uniform:  # the chunk crosses the full depth in one iteration: R = c, or infeasible
@@ -131,7 +139,8 @@ def capacity(cfg, cost, allreduce, moe, host, B, bd, t, delta, h0):
                 hy_R=round(hy[0]), hy_nA=hy[1][0] if hy[1] else 0, hy_nG=hy[1][1] if hy[1] else 0,
                 hy_nM=hy[1][2] if hy[1] else 0, hy_lim=hy[2],
                 lay_over_uni=lay[0] / uni[0] if uni[0] else np.nan,
-                hy_over_best=hy[0] / max(uni[0], lay[0]) if uni[0] else np.nan,
+                # uniform infeasible (R = 0) still counts: the best baseline is then layered
+                hy_over_best=hy[0] / max(uni[0], lay[0]) if max(uni[0], lay[0]) else np.nan,
                 pipe_over_uni=max(lay[0], hy[0]) / uni[0] if uni[0] else np.nan)
 
 

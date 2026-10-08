@@ -9,7 +9,7 @@
   KILL   : f < 5% at both D = 32 and D = 64
   else   : undecided at KT1, KT2 decides
 
-  python bench/kt1_eval.py results/step02/<date>_s02_..._kt1_draw   # prefix: matches <prefix>*/summary.csv
+  python bench/kt1_eval.py results/step02/<date>_s02_..._kt1_draw [out.csv]   # prefix: matches <prefix>*/summary.csv
 """
 import datetime, glob, json, pathlib, sys
 
@@ -58,7 +58,7 @@ def main():
     go = verdict.get(32, (9, 0))[0] <= 0.6 and verdict.get(32, (9, 0))[1] >= 0.10
     kill = all(verdict[d][1] < 0.05 for d in (32, 64) if d in verdict) and 32 in verdict and 64 in verdict
     print("\nKT1:", "GO" if go else "KILL (MoE amortization branch)" if kill else "undecided -> KT2 decides")
-    dst = REPO / f"results/step02/kt1_eval_{MODEL}_{datetime.date.today()}.csv"
+    dst = sys.argv[2] if len(sys.argv) > 2 else REPO / f"results/step02/kt1_eval_{MODEL}_{datetime.date.today()}.csv"
     out.to_csv(dst, index=False, float_format="%.5f")
     print("->", dst)
 

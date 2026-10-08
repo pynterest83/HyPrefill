@@ -56,6 +56,13 @@ Mẫu: **Làm gì** · **Số liệu chính** · **Bất ngờ** · **Bị chặ
 - Bị chặn: không. Lỗi chia cho 0 ở c = 0 của `op_cost.py` đã sửa; thư mục của lượt hỏng đã xoá.
 - Tiếp: phân tích vì sao tách chunk theo operator chỉ thêm ≤ 4% (ràng buộc nào chặn Layered), rồi quyết hướng theo PROPOSAL §5 (KT2-b).
 
+### 2026-10-08 (chiều, chẩn đoán KT1/KT2: `docs/12_DIAGNOSIS_KT1_KT2_2026-10-08.md`)
+- Làm gì: sửa lỗi NaN của KT2-a (ô chunk đồng nhất không khả thi bị bỏ); quét `fused_experts` theo số expert × số token (`bench/moe_diag.py`); đo KT1 dưới mọi cấu hình tune của `fused_moe` (`bench/moe_config_cf.py`); bản đồ HyPrefill / Layered theo (t, P), độ nhạy theo số layer mỗi lần chạy g và CPU mỗi lần chạy (`bench/kt2_diag.py`).
+- Số liệu chính: KT2-a đã sửa = 1.18 → **vùng giữa** (không phải KILL), nhưng chỉ ở P = 0.94 ms, Layered 39 token/iteration; ở P thực tế 15–40 ms HyPrefill / Layered = 1.02–1.04. ≥ 1.25 chỉ khi P ≲ 1–3 ms hoặc g ≥ 12 layer mỗi lần chạy. KT1 với cấu hình MoE tốt nhất: tỉ lệ 0.63, f = 10.5% ở D = 32 → vùng chưa quyết; KT2 khi đó: KT2-a 1.14, KT2-b 1.51 (GO).
+- Bất ngờ: một nửa lợi ích khấu hao MoE của KT1 là do bảng cấu hình vLLM cho H200 (key M = 512: `BLOCK_SIZE_M = 16`, tune với router ngẫu nhiên); `moe_mixed` ở c = 512 rẻ hơn 17–20% với cấu hình khác, và M = 640–768 đắt hơn M = 1024.
+- Bị chặn: không. Quyết định hướng (bỏ headline HyPrefill / Layered, đi KT2-b) chờ duyệt, chưa sửa PROPOSAL.
+- Tiếp: ghi quyết định vào PROPOSAL §5; tune `fused_moe` theo routing thật cho mọi policy trước khi so end-to-end; nếu đi KT2-b thì thiết kế bản cài pipeline theo nhóm layer trong vLLM.
+
 ---
 
 ## Ý tưởng để dành (không code trong lúc chạy kế hoạch)
