@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-09T10:33:41",
+  "model": "/home/hyprefill/hf_cache/hub/models--Qwen--Qwen3-Next-80B-A3B-Instruct/snapshots/9c7f2fbe84465e40164a94cc16cd30b6999b0cc7/",
+  "tp": 2,
+  "c": "512,2048,8192",
+  "t": "0,16384,65536",
+  "repeats": 3,
+  "vllm": "0.30.0",
+  "prefix_caching": false,
+  "lock_mhz": "1980",
+  "cuda_visible_devices": "6,7",
+  "repo_commit": "e9dea1223add2ca3695495ebea1f02fade9fe75b",
+  "repo_dirty": true,
+  "cmd": "bench/validate_forward_moe.py",
+  "raw": "/home/hyprefill/hyprefill_data/step01/2026-10-09_validate_forward_Qwen3-Next-80B-A3B-Instruct_tp2",
+  "note": "GPU = union of kernel/memcpy/memset intervals on rank 0 (nsys, one profiled request); wall = median of unprofiled requests; prediction from step 1/2 tables + all-reduce + KT1 moe_mixed"
+}

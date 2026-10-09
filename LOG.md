@@ -72,6 +72,13 @@ Mẫu: **Làm gì** · **Số liệu chính** · **Bất ngờ** · **Bị chặ
 - Demo quét tải (xong 07:27, `results/step00/layered_demo/2026-10-09/`): chunked bão hoà ~3.0 req/s (máy cũ ~2.64). **Layered giờ thắng gần bão hoà**: TTFT layered/chunked 0.97 (2.5), 0.86 (2.8), 0.82 (2.9), 0.65 (3.0), 0.42 (3.2 req/s); SLO đạt ở 3.2 req/s 82% so với 33%; throughput bão hoà 3.04–3.11 so với 3.00; năng lượng −10…−14%. Máy cũ: Layered tệ hơn chunked tới 1.9× ở 2.8 req/s. Vậy giả thuyết 30/09 đúng: CPU cũ ăn mất phần GPU Layered tiết kiệm. Lưới tải còn thô (cả hai goodput ≥ 3.0 ở ngưỡng 90%); cần quét mịn 3.0–3.3.
 - G1c (chiều): indexer QSA cấp phát tỉ lệ c·t nhưng bị chặn ở ~1 GiB (giới hạn 512 MB, tốn ≤ 6% thời gian; bỏ giới hạn thì crash ở c = 32768, t = 128K); model thật Flash-Next-FP8 TP2: KV cache −1.6% ở chunk 8192, −15% ở 32768, do activation chung chứ không riêng attention → **G1c trượt**, cửa cuối của luận điểm gốc đóng. Expert decode D = 128 chạm 280/512. `plan/02` đã điền checklist và KẾT QUẢ.
 
+### 2026-10-09 (tối, kiểm lại "HyPrefill không thắng": `docs/13_AUDIT_KT2_2026-10-09.md`)
+- Làm gì: §2.5 lần đầu cho Qwen3-Next TP2 (nsys, `bench/validate_forward_moe.py`); kiểm CUDA graph; mô phỏng từng iteration thay công thức KT2 (`bench/kt2_sim_check.py`), có budget CPU, hai thứ tự xếp lịch, MoE cấu hình tốt nhất; quét mịn demo 3.05–3.3 req/s.
+- Số liệu chính: bảng cost khớp forward thật −3 … −7% ở các ô GPU là ràng buộc. Mô phỏng: HyPrefill / Layered tới 1.31 (1.36 với MoE tốt nhất), 5/46 ô ≥ 1.25, 9–10 ô ≥ 1.10, ở B = 25 ms (vài ô 50 ms), t ≥ 128K; B = 100 ms: ≤ 1.06. Công thức KT2 trên cùng lưới: 0 ô ≥ 1.25. Demo fork: goodput layered / chunked ~1.03.
+- Bất ngờ: công thức trạng thái ổn định lạc quan cho Layered (xếp việc vào budget như chất lỏng); chunk lớn bị "cục", Layered đạt 59–93% throughput công thức hứa. Ngược lại, KT2 tính attention ở context cố định, có lợi cho HyPrefill (đã sửa, ≤ 3%). vLLM 0.30 chạy eager mọi step lớn hơn cỡ CUDA graph lớn nhất (mặc định 512): ~90 ms CPU/step.
+- Bị chặn: lượt kiểm forward đầu đặt `max_num_seqs = 16` nên mọi step eager (đã sửa script, chưa chạy lại); §2.5 Qwen3-Next có prefix cache vẫn 91 ms/step ở c = 512, chưa rõ vì sao.
+- Tiếp: quyết có dùng mô phỏng từng iteration để quyết KT2-a không (ghi PROPOSAL §5); nếu có, luận điểm mới là độ mịn khi xếp việc vào budget ở TBT chặt, context dài, và kiểm thật ở bước 5.
+
 ---
 
 ## Ý tưởng để dành (không code trong lúc chạy kế hoạch)

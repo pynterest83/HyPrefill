@@ -1,5 +1,7 @@
 # Chẩn đoán KT1/KT2: vì sao chunk theo operator gần như không thắng Layered (08/10/2026)
 
+> **Cập nhật 09/10/2026:** kết luận "HyPrefill / Layered ≤ 1.04" ở đây dựa trên công thức trạng thái ổn định của `kt2_capacity.py`, vốn lạc quan cho Layered. Mô phỏng từng iteration cho HyPrefill / Layered tới 1.31–1.36 ở TBT chặt, context dài. Xem `docs/13_AUDIT_KT2_2026-10-09.md`. Phần MoE (§6) và G1c vẫn đứng.
+
 Viết sau khi KT1 và KT2 đã chạy (máy hyprefill-dev-0, GPU 4, khoá 1980 MHz, Qwen3-Next-80B-A3B TP2). Tài liệu này **không đổi tiêu chí** ở PROPOSAL §5. Nó chỉ sửa một lỗi tính, đo thêm để giải thích kết quả, và nêu các hướng còn lại để quyết định.
 
 ## 0. Tóm tắt

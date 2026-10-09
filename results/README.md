@@ -32,6 +32,11 @@
 | `step02/2026-10-09_g1c_indexer_mem_{cap512,uncapped}/` | G1c: bộ nhớ đỉnh và thời gian indexer QSA (Qwen3.8-Flash-Next) theo (c, t), có / không giới hạn 512 MB: bị chặn ở ~1 GiB, giới hạn tốn ≤ 6% thời gian. **G1c trượt** (`plan/02` R4) |
 | `step02/2026-10-09_g1c_kv_capacity/` | G1c trên model thật Flash-Next-FP8 TP2: KV cache theo chunk tối đa (−1.6% ở 8192, −15% ở 32768) |
 | `step02/moe_overlap_*_arxiv192_2026-10-08dump.csv` | Expert decode / prefill / hợp trên dump 192 request, D ∈ {8, 32, 64, 128} |
+| `step01/2026-10-09_validate_forward_Qwen3-Next-80B-A3B-Instruct_tp2/` | §2.5 lần đầu cho Qwen3-Next TP2: GPU thật lệch bảng cost −3 … −7% ở các ô GPU là ràng buộc. **Lượt chạy với `max_num_seqs = 16` (mọi step eager)**: hai dòng t = 64K ở c ≤ 2048 không dùng được (`docs/13` §1) |
+| `step01/2026-10-09_cudagraph_check/` | Step chunked prefill Qwen3-Next TP2 theo cỡ CUDA graph được capture: c = 2048 mặc định 87 ms/step, capture tới 2048: 44 ms/step |
+| `step00/layered_demo/2026-10-09_run2/` | Quét mịn 3.05–3.3 req/s: goodput (≥ 90% SLO) chunked ~3.05, layered ~3.15 req/s (~1.03×) |
+| `step02/kt2_sim_check*_2026-10-09.csv` | Mô phỏng từng iteration thay công thức KT2 (`bench/kt2_sim_check.py`): HyPrefill / Layered tới 1.31–1.36, 5/46 ô ≥ 1.25 (TBT 25 ms, t ≥ 128K); `_bestcfg`: MoE theo cấu hình tốt nhất. Xem `docs/13` |
+| `step02/2026-10-08_moe_config_cf/best_draw{0,1,2}/` | Chi phí `moe_mixed` theo cấu hình tốt nhất mỗi ô, dạng đầu vào `--kt1` |
 | `step02/oracle_*`, `step02/sim_*` | (sẽ có) oracle, mô phỏng |
 
 ## Dữ liệu cũ, không trộn với chuẩn mới (ở `~/hyprefill_data/` trên server)

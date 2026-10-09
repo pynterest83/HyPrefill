@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-09T07:37:41+00:00",
+  "model": "/home/hyprefill/hf_cache/hub/models--Qwen--Qwen3-30B-A3B/snapshots/ad44e777bcd18fa416d9da3bd8f70d33ebb85d39/",
+  "gpus": "4,5",
+  "cpus": "48-71",
+  "gpu_state": [
+    "4, NVIDIA H200, 1980 MHz, 1980 MHz, 700.00 W, 4 MiB, 0 %",
+    "5, NVIDIA H200, 1980 MHz, 1980 MHz, 700.00 W, 4 MiB, 0 %"
+  ],
+  "torch": "2.8.0+cu128",
+  "cuda": "12.8",
+  "fork_commit": "053f80e5201a7c0ab56e468e3d578907a2ca9cc3",
+  "repo_commit": "d8216f8f02a858fcb795d547d2c5e8cecc7532e7",
+  "rates": "3.05 3.1 3.15 3.2 3.25 3.3",
+  "warmup_s": 60,
+  "bench_s": 600,
+  "modes": "chunked layered",
+  "tp": 2,
+  "dynamo_recompile_limit": "default (8)",
+  "pythonpath": "",
+  "max_model_len": 32768,
+  "gpu_memory_utilization": 0.85,
+  "clock_idle_pinned_mhz": "see gpu_state (admin lock, 1980 from 2026-09-29)"
+}
