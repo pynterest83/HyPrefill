@@ -1,0 +1,29 @@
+{
+  "model": "/home/hyprefill/hf_cache/hub/models--Qwen--Qwen3.8-27B/snapshots/1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0/",
+  "tp": 1,
+  "sweep_c": "512,1024,2048,4096,8192",
+  "t": "0,16384,65536",
+  "repeats": 5,
+  "lock_mhz": "1980",
+  "cuda_visible_devices": "6",
+  "gpus": [
+    "0, 1980 MHz, 700.00 W",
+    "1, 1980 MHz, 700.00 W",
+    "2, 1980 MHz, 700.00 W",
+    "3, 1980 MHz, 700.00 W",
+    "4, 1980 MHz, 700.00 W",
+    "5, 1980 MHz, 700.00 W",
+    "6, 1980 MHz, 700.00 W",
+    "7, 1980 MHz, 700.00 W"
+  ],
+  "cgroup_cpu": {
+    "wall_s": 1166.1,
+    "quota_cores": 128.0,
+    "nr_periods": 11660,
+    "nr_throttled": 0,
+    "throttled_s": 0.0,
+    "cpu_s": 5265.2,
+    "mean_cores_used": 4.52
+  },
+  "note": "wall = blocking LLM.generate of one request without profiler (median of repeats); busy = sum of GPU kernel durations of one profiled request; per step = / ceil((t + c) / c)"
+}

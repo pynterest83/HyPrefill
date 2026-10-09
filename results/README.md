@@ -24,6 +24,10 @@
 | `step02/2026-10-08_moe_config_cf/` | KT1 dưới mọi cấu hình tune của `fused_moe` (`bench/moe_config_cf.py`); lượt mặc định tái hiện KT1 ≤ 1.1% |
 | `step02/kt1_eval_*_bestcfg.csv`, `kt2_capacity_*_kt1_bestcfg.csv` | KT1 / KT2 với cấu hình MoE tốt nhất mỗi ô: KT1 vùng chưa quyết (0.63), KT2-a 1.14, KT2-b 1.51 |
 | `step02/kt2_diag_*_2026-10-08/` | Chẩn đoán (`bench/kt2_diag.py`): chi phí mỗi token theo nhóm, bản đồ (t, P), độ nhạy g và `h_fire`; xem `docs/12` |
+| `step01/2026-10-09_cpu_recheck_*_gpu6/` | Đo lại `host_ms` sau khi đổi CPU (governor `performance` ở NUMA 2–3): FA −32%, GDN ổn định 0.275 ms; thời gian GPU khớp 29/09 ±5% |
+| `step01/2026-10-09_vllm_step_sweep_Qwen3.8-27B_tp1/` | §2.5 làm lại trên máy mới: CPU/idle mỗi step ở c = 512 giảm 34 → 9 ms. (Bản Qwen3-Next TP2 cùng ngày **không hợp lệ**, đã chuyển ra `~/hyprefill_data/invalid_runs/`) |
+| `step00/layered_profile/2026-10-09/` | Profile fork làm lại sau khi đổi CPU: máy cũ bão hoà ở 2.5 req/s, máy mới không (TTFT 7.8 → 1.35 s) |
+| `step02/kt2_capacity_*_kt1_host1009.csv` | KT2 (đã sửa NaN) với `host_ms` đo 09/10: không đổi so với `*_kt1_fix.csv` |
 | `step02/*g1c*`, `step02/oracle_*`, `step02/sim_*` | (sẽ có) G1c, oracle, mô phỏng |
 
 ## Dữ liệu cũ, không trộn với chuẩn mới (ở `~/hyprefill_data/` trên server)

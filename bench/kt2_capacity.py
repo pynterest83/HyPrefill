@@ -38,6 +38,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from oracle import Costs, layers  # noqa: E402
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
+HOST_FROM = None  # --host-from
 GRID = [64, 128, 192, 256, 384, 512, 768, 1024, 1536, 2048, 3072, 4096, 6144, 8192]
 
 
@@ -53,6 +54,9 @@ def load(model, kt1):
     E, k = cfg["num_experts"], cfg["num_experts_per_tok"]
     ov = pd.read_csv(REPO / f"results/step02/moe_overlap_{name}.csv")
     host = {op: float(tab[(tab.op == op) & (tab.t > 0)].host_ms.median()) for op in ("gdn", "fa")}
+    if HOST_FROM:  # host_ms re-measured on another CPU (op_cost.py summary), e.g. after a CPU change
+        h = pd.read_csv(HOST_FROM)
+        host = {op: float(h[(h.op == op) & (h.t > 0)].host_ms.median()) for op in ("gdn", "fa")}
 
     if kt1:  # measured: moe_mixed with real routing, column t holds bd, averaged over routing draws
         m = pd.concat([pd.read_csv(f) for f in glob.glob(f"{kt1}/summary.csv") + glob.glob(f"{kt1}*/summary.csv")])
@@ -168,8 +172,11 @@ def main():
     ap.add_argument("--delta", default="2048,4096,8192")
     ap.add_argument("--h0", default="10,0,20", help="CPU ms per iteration besides eager calls; first is the decision value")
     ap.add_argument("--out", default=None)
+    ap.add_argument("--host-from", default=None, help="op_cost.py summary.csv to take the GDN / FA host_ms from")
     ap.add_argument("--jobs", type=int, default=32)
     a = ap.parse_args()
+    global HOST_FROM
+    HOST_FROM = a.host_from
     cfg, cost, allreduce, moe, host, src = load(a.model, a.kt1)
     print(f"MoE: {src}; host ms per call: {host}")
     grid = list(itertools.product(*[[float(x) for x in a.h0.split(",")]] + [

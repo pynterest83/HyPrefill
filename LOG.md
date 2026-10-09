@@ -63,6 +63,13 @@ Mẫu: **Làm gì** · **Số liệu chính** · **Bất ngờ** · **Bị chặ
 - Bị chặn: không. Quyết định hướng (bỏ headline HyPrefill / Layered, đi KT2-b) chờ duyệt, chưa sửa PROPOSAL.
 - Tiếp: ghi quyết định vào PROPOSAL §5; tune `fused_moe` theo routing thật cho mọi policy trước khi so end-to-end; nếu đi KT2-b thì thiết kế bản cài pipeline theo nhóm layer trong vLLM.
 
+### 2026-10-09 (đo lại các phép đo từng bị nghẽn CPU, `bench/run_cpu_recheck.sh`)
+- Làm gì: governor CPU đã đổi: NUMA 2–3 (CPU 48–95, cạnh GPU 4–7) là `performance`, NUMA 0–1 là `powersave`; quota cgroup vẫn 128 core, không bị bóp. Đo lại `host_ms` (Qwen3-Next TP2, GPU 6), §2.5 Qwen3.8-27B TP1 (như 29/09), §2.5 Qwen3-Next TP2 (lần đầu), profile nsys fork Layered (như 30/09); chạy lại KT2 với `host_ms` mới; bắt đầu demo Layered quét tải 1.3–4.0 req/s.
+- Số liệu chính: thời gian GPU khớp máy cũ ±5% (clock tụt vì SW power cap như cũ). `host_ms`: FA −32%, fa_decode −27%, gdn_decode −24%; GDN ổn định 0.272–0.278 ms (máy cũ dao động 0.22–0.38). §2.5 Qwen3.8-27B c = 512: CPU/idle mỗi step 34 → 9 ms, GPU bận 56 → 83%. Fork ở 2.5 req/s (nsys): máy cũ bão hoà (2.28 req/s, TTFT 7.8 s), máy mới theo kịp (2.44 req/s, TTFT 1.35 s); Layered vẫn ít GPU hơn 11% nhưng TTFT không tốt hơn. KT2 với `host_ms` mới: không đổi (1.181 / 1.875).
+- Bất ngờ: §2.5 của Qwen3-Next TP2 không đo được bằng cách cũ: lần chạy có profiler chậm hơn lần đo wall tới 25%, GPU bận ra 110–123% wall. Đã chuyển ra `~/hyprefill_data/invalid_runs/`; `profile_vllm_step.py` giờ tính GPU bận bằng hợp khoảng (không cộng trùng stream) và cảnh báo khi bận > wall.
+- Bị chặn: không biết governor của CPU 48–95 trước 09/10 (ảnh chụp 08/10 không ghi); `record_env.sh` giờ ghi governor từng NUMA node.
+- Tiếp: đọc demo quét tải (máy cũ: chunked bão hoà 2.64, layered 2.60 req/s), xem CPU nhanh hơn có làm phần GPU Layered tiết kiệm thành goodput không; §2.5 cho Qwen3-Next TP2 cần cách đo khác (nsys trên chính request được tính wall).
+
 ---
 
 ## Ý tưởng để dành (không code trong lúc chạy kế hoạch)

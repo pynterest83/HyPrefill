@@ -54,7 +54,14 @@ def analyze(trace_file):
     for e in k:
         by_cat[categorize(e["name"])] += e["dur"]
         by_name[e["name"][:90]] += e["dur"]
-    busy = sum(e["dur"] for e in k)
+    busy = sum(e["dur"] for e in k)  # sum over kernels: counts overlapping streams twice
+    union, cs, ce = 0, k[0]["ts"], k[0]["ts"] + k[0]["dur"]  # GPU busy as the union of kernel intervals
+    for e in k[1:]:
+        if e["ts"] > ce:
+            union += ce - cs; cs, ce = e["ts"], e["ts"] + e["dur"]
+        else:
+            ce = max(ce, e["ts"] + e["dur"])
+    union += ce - cs
     span = k[-1]["ts"] + k[-1]["dur"] - k[0]["ts"]
     # steps: split where the GPU is idle for > 2 ms (between engine steps)
     steps, cur, last_end = [], [k[0]], k[0]["ts"] + k[0]["dur"]
@@ -64,7 +71,7 @@ def analyze(trace_file):
         cur.append(e); last_end = max(last_end, e["ts"] + e["dur"])
     steps.append(cur)
     step_rows = [(s[0]["ts"], (s[-1]["ts"] + s[-1]["dur"] - s[0]["ts"]) / 1e3, sum(x["dur"] for x in s) / 1e3) for s in steps]
-    return dict(busy_ms=busy / 1e3, span_ms=span / 1e3, n_kernels=len(k),
+    return dict(busy_ms=union / 1e3, kernel_sum_ms=busy / 1e3, span_ms=span / 1e3, n_kernels=len(k),
                 by_cat_ms={c: v / 1e3 for c, v in by_cat.most_common()},
                 top_kernels_ms=[(n, v / 1e3) for n, v in by_name.most_common(15)],
                 steps=[dict(span_ms=sp, busy_ms=b) for _, sp, b in step_rows])
@@ -131,6 +138,9 @@ def sweep(a):
             n_steps = -(-(t + c) // c)
             wall_total = float(np.median(walls))
             busy_total = res["busy_ms"] if res else float("nan")
+            if busy_total > float(np.median(walls)):  # Qwen3-Next TP2, 2026-10-09: the profiled run is slower than the timed ones
+                print(f"WARNING c={c} t={t}: GPU busy {busy_total:.0f} ms > wall {np.median(walls):.0f} ms; "
+                      "the profiled request is not representative, do not use this row", flush=True)
             wall_step, busy_step = wall_total / n_steps, busy_total / n_steps
             rows.append(dict(c=c, t=t, steps=n_steps, wall_total_ms=wall_total, wall_min_ms=min(walls),
                              wall_max_ms=max(walls), gpu_busy_total_ms=busy_total,
