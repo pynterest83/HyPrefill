@@ -29,7 +29,10 @@
 | `step01/2026-10-09_vllm_step_sweep_Qwen3.8-27B_tp1/` | §2.5 làm lại trên máy mới: CPU/idle mỗi step ở c = 512 giảm 34 → 9 ms. (Bản Qwen3-Next TP2 cùng ngày **không hợp lệ**, đã chuyển ra `~/hyprefill_data/invalid_runs/`) |
 | `step00/layered_profile/2026-10-09/` | Profile fork làm lại sau khi đổi CPU: máy cũ bão hoà ở 2.5 req/s, máy mới không (TTFT 7.8 → 1.35 s) |
 | `step02/kt2_capacity_*_kt1_host1009.csv` | KT2 (đã sửa NaN) với `host_ms` đo 09/10: không đổi so với `*_kt1_fix.csv` |
-| `step02/*g1c*`, `step02/oracle_*`, `step02/sim_*` | (sẽ có) G1c, oracle, mô phỏng |
+| `step02/2026-10-09_g1c_indexer_mem_{cap512,uncapped}/` | G1c: bộ nhớ đỉnh và thời gian indexer QSA (Qwen3.8-Flash-Next) theo (c, t), có / không giới hạn 512 MB: bị chặn ở ~1 GiB, giới hạn tốn ≤ 6% thời gian. **G1c trượt** (`plan/02` R4) |
+| `step02/2026-10-09_g1c_kv_capacity/` | G1c trên model thật Flash-Next-FP8 TP2: KV cache theo chunk tối đa (−1.6% ở 8192, −15% ở 32768) |
+| `step02/moe_overlap_*_arxiv192_2026-10-08dump.csv` | Expert decode / prefill / hợp trên dump 192 request, D ∈ {8, 32, 64, 128} |
+| `step02/oracle_*`, `step02/sim_*` | (sẽ có) oracle, mô phỏng |
 
 ## Dữ liệu cũ, không trộn với chuẩn mới (ở `~/hyprefill_data/` trên server)
 

@@ -1,0 +1,15 @@
+{
+  "date": "2026-10-09T10:12:27",
+  "model": "/home/hyprefill/hf_cache/hub/models--Qwen--Qwen3.8-Flash-Next-FP8/snapshots/236dfdf285828023ca3bcd3f37366c58a3469b13/",
+  "tp": 2,
+  "max_model_len": 262144,
+  "gpu_memory_utilization": 0.9,
+  "smoke_tokens": 131072,
+  "vllm": "0.30.0",
+  "indexer_logits_cap_mb": "default (512)",
+  "cuda_visible_devices": "6,7",
+  "repo_commit": "d8216f8f02a858fcb795d547d2c5e8cecc7532e7",
+  "repo_dirty": true,
+  "cmd": "bench/g1c_kv_capacity.py --tp 2",
+  "logs": "/home/hyprefill/hyprefill_data/step02/2026-10-09_g1c_kv_capacity"
+}

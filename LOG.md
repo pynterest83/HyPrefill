@@ -70,6 +70,7 @@ Mẫu: **Làm gì** · **Số liệu chính** · **Bất ngờ** · **Bị chặ
 - Bị chặn: không biết governor của CPU 48–95 trước 09/10 (ảnh chụp 08/10 không ghi); `record_env.sh` giờ ghi governor từng NUMA node.
 - Tiếp: §2.5 cho Qwen3-Next TP2 cần cách đo khác (nsys trên chính request được tính wall).
 - Demo quét tải (xong 07:27, `results/step00/layered_demo/2026-10-09/`): chunked bão hoà ~3.0 req/s (máy cũ ~2.64). **Layered giờ thắng gần bão hoà**: TTFT layered/chunked 0.97 (2.5), 0.86 (2.8), 0.82 (2.9), 0.65 (3.0), 0.42 (3.2 req/s); SLO đạt ở 3.2 req/s 82% so với 33%; throughput bão hoà 3.04–3.11 so với 3.00; năng lượng −10…−14%. Máy cũ: Layered tệ hơn chunked tới 1.9× ở 2.8 req/s. Vậy giả thuyết 30/09 đúng: CPU cũ ăn mất phần GPU Layered tiết kiệm. Lưới tải còn thô (cả hai goodput ≥ 3.0 ở ngưỡng 90%); cần quét mịn 3.0–3.3.
+- G1c (chiều): indexer QSA cấp phát tỉ lệ c·t nhưng bị chặn ở ~1 GiB (giới hạn 512 MB, tốn ≤ 6% thời gian; bỏ giới hạn thì crash ở c = 32768, t = 128K); model thật Flash-Next-FP8 TP2: KV cache −1.6% ở chunk 8192, −15% ở 32768, do activation chung chứ không riêng attention → **G1c trượt**, cửa cuối của luận điểm gốc đóng. Expert decode D = 128 chạm 280/512. `plan/02` đã điền checklist và KẾT QUẢ.
 
 ---
 

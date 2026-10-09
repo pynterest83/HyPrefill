@@ -1,0 +1,15 @@
+{
+  "date": "2026-10-09T10:00:46",
+  "H": 4,
+  "D": 128,
+  "compress_ratio": 4,
+  "topk": 2048,
+  "page_size": 64,
+  "logits_cap_mb": 512,
+  "vllm": "0.30.0",
+  "torch": "2.13.0+cu130",
+  "cuda_visible_devices": "6",
+  "repo_commit": "d8216f8f02a858fcb795d547d2c5e8cecc7532e7",
+  "cmd": "bench/g1c_indexer_mem.py --c 256,512,1024,2048,4096,8192,16384,32768 --t 32768,131072,262144 --tag cap512",
+  "timing": "CUDA events around one eager call (host loop over query chunks inside); memory is the point here"
+}
