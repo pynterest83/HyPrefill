@@ -7,6 +7,7 @@
 | `step00/model_configs.md`, `step00/configs/` | Bố cục layer và shape của 6 model, đọc từ `config.json` (không phụ thuộc phép đo) |
 | `env/2026-09-29/` | phiên bản gói, driver, clock, commit lúc đo (`scripts/record_env.sh`) |
 | `step00/layered_demo/2026-09-30/{summary,energy}.csv` | Fork Layered: chunked và layered, Qwen3-30B-A3B, arXiv, 9 mức tải, tỉ lệ đạt SLO và năng lượng mỗi token |
+| `step00/layered_demo/2026-10-09/{summary,energy}.csv` | Như 30/09 nhưng trên máy mới sau khi đổi CPU, 10 mức tải 1.3–4.0 req/s. Chunked bão hoà ~3.0 req/s (máy cũ ~2.64); Layered giảm TTFT 3–58% từ 2.5 req/s, SLO đạt ở 3.2 req/s: 82% so với 33%; năng lượng −10…−14%. JSON thô ở `~/hyprefill_data/step00/layered_demo/2026-10-09/` |
 | `step00/layered_profile/2026-09-30/` | Profile nsys của fork ở 2.5 req/s: thời gian kernel theo loại và NVTX phía CPU, chunked so với layered (`analysis.txt`) |
 | `step01/cost_tables/<model>.csv` | **Bảng cost chính thức bước 1**: median 2 card (GPU 6, 7), kèm `*_repeatability.txt` và `analysis.txt`. Từng lượt ở `step01/2026-09-29_<model>_tp<N>_gpu{6,7}/` |
 | `step01/2026-09-29_allreduce_*` | All-reduce TP2 qua đường của vLLM |

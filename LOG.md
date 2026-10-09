@@ -68,7 +68,8 @@ Mẫu: **Làm gì** · **Số liệu chính** · **Bất ngờ** · **Bị chặ
 - Số liệu chính: thời gian GPU khớp máy cũ ±5% (clock tụt vì SW power cap như cũ). `host_ms`: FA −32%, fa_decode −27%, gdn_decode −24%; GDN ổn định 0.272–0.278 ms (máy cũ dao động 0.22–0.38). §2.5 Qwen3.8-27B c = 512: CPU/idle mỗi step 34 → 9 ms, GPU bận 56 → 83%. Fork ở 2.5 req/s (nsys): máy cũ bão hoà (2.28 req/s, TTFT 7.8 s), máy mới theo kịp (2.44 req/s, TTFT 1.35 s); Layered vẫn ít GPU hơn 11% nhưng TTFT không tốt hơn. KT2 với `host_ms` mới: không đổi (1.181 / 1.875).
 - Bất ngờ: §2.5 của Qwen3-Next TP2 không đo được bằng cách cũ: lần chạy có profiler chậm hơn lần đo wall tới 25%, GPU bận ra 110–123% wall. Đã chuyển ra `~/hyprefill_data/invalid_runs/`; `profile_vllm_step.py` giờ tính GPU bận bằng hợp khoảng (không cộng trùng stream) và cảnh báo khi bận > wall.
 - Bị chặn: không biết governor của CPU 48–95 trước 09/10 (ảnh chụp 08/10 không ghi); `record_env.sh` giờ ghi governor từng NUMA node.
-- Tiếp: đọc demo quét tải (máy cũ: chunked bão hoà 2.64, layered 2.60 req/s), xem CPU nhanh hơn có làm phần GPU Layered tiết kiệm thành goodput không; §2.5 cho Qwen3-Next TP2 cần cách đo khác (nsys trên chính request được tính wall).
+- Tiếp: §2.5 cho Qwen3-Next TP2 cần cách đo khác (nsys trên chính request được tính wall).
+- Demo quét tải (xong 07:27, `results/step00/layered_demo/2026-10-09/`): chunked bão hoà ~3.0 req/s (máy cũ ~2.64). **Layered giờ thắng gần bão hoà**: TTFT layered/chunked 0.97 (2.5), 0.86 (2.8), 0.82 (2.9), 0.65 (3.0), 0.42 (3.2 req/s); SLO đạt ở 3.2 req/s 82% so với 33%; throughput bão hoà 3.04–3.11 so với 3.00; năng lượng −10…−14%. Máy cũ: Layered tệ hơn chunked tới 1.9× ở 2.8 req/s. Vậy giả thuyết 30/09 đúng: CPU cũ ăn mất phần GPU Layered tiết kiệm. Lưới tải còn thô (cả hai goodput ≥ 3.0 ở ngưỡng 90%); cần quét mịn 3.0–3.3.
 
 ---
 
