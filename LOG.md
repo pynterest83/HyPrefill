@@ -102,6 +102,13 @@ Mẫu: **Làm gì** · **Số liệu chính** · **Bất ngờ** · **Bị chặ
 - Tiếp: tải và phân tích trace; mô phỏng mức request trên trace; M1 ở 512K/1M; thiết kế prefix cache + staged prefill; mở rộng bộ chạy thử cho Kimi-Linear, Flash-Next; cài SLOWeave làm baseline.
 - Kết quả trong ngày: trace cc-traces-weka (prefix cache phục vụ 96% token; công prefill: append ≥ 16K chiếm 44%, context ≥ 64K chiếm 63%). Thiết kế staged prefill + prefix cache hybrid (`docs/06_DESIGN.md` §9: commit theo nhóm ở mốc nhỏ nhất, slot state theo layer, chunk bội 544). M1 ở 512K/1M: tối đa 1.20, các ô khác 1.00–1.12; lợi thế không tăng tiếp theo context vì decode ăn gần hết budget.
 
+### 2026-10-10 (đêm, research hướng mới: `docs/14_NEW_DIRECTION_RESEARCH_2026-10-10.md`)
+- Làm gì: mô phỏng mức request trên trace (`bench/reqsim.py`, sơ bộ với hiệu chỉnh M1 v2); bốn lượt tra cứu song song (paper hybrid, upstream vLLM qua `gh`, SGLang/TRT-LLM/LMCache/Dynamo, serving agentic) và tổng hợp.
+- Số liệu chính: goodput trên trace: HyPrefill = Layered (1.00× ở TBT 50 ms, 0.97× ở 25 ms); chunked/SLOWeave = 0 ở 25 ms. Mô phỏng: 60–92% iteration bị chặn bởi CPU, GPU ~70% decode, ~10% prefill, KV dùng 35–50%.
+- Bất ngờ: không công trình quản lý KV cho agent nào mô hình hoá state hồi quy; mọi issue prefix cache hybrid lớn của vLLM nêu chat nhiều lượt/agent là trường hợp gãy (#45238, #57111); MiniMax M2 bỏ hybrid một phần vì prefix cache.
+- Bị chặn: chờ duyệt hướng H1 (vòng đời mốc state cho hybrid dưới workload agentic) và tiêu chí của nghiên cứu đặc trưng hoá.
+- Tiếp: M1 v3 chạy xong thì ghi kết quả; nghiên cứu đặc trưng hoá trên vLLM thật (phát lại trace, đo token tính lại do mất mốc, CPU mỗi step, so với model thuần attention).
+
 ---
 
 ## Ý tưởng để dành (không code trong lúc chạy kế hoạch)
