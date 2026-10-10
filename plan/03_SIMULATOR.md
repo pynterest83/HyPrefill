@@ -2,6 +2,8 @@
 
 **Mục tiêu:** Dựng simulator iteration-level từ bảng cost đã đo, cài 5 policy, xác nhận simulator khớp hệ thật, rồi **quyết cổng G1a và G1b** bằng goodput (chuyển từ bước 2, sửa 2026-09-29).
 
+> **Sửa 10/10/2026 (PROPOSAL §5):** simulator không còn là cổng chặn trước prototype. G1a, G1b quyết bằng số end-to-end trong vLLM (bước 8); bước này chạy song song để vẽ bản đồ regime và làm cơ sở cho G4. Mô phỏng từng iteration ở `bench/kt2_sim_check.py` là khung ban đầu.
+
 ---
 
 ## 1. Đầu ra bắt buộc

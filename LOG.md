@@ -79,6 +79,13 @@ Mẫu: **Làm gì** · **Số liệu chính** · **Bất ngờ** · **Bị chặ
 - Bị chặn: lượt kiểm forward đầu đặt `max_num_seqs = 16` nên mọi step eager (đã sửa script, chưa chạy lại); §2.5 Qwen3-Next có prefix cache vẫn 91 ms/step ở c = 512, chưa rõ vì sao.
 - Tiếp: quyết có dùng mô phỏng từng iteration để quyết KT2-a không (ghi PROPOSAL §5); nếu có, luận điểm mới là độ mịn khi xếp việc vào budget ở TBT chặt, context dài, và kiểm thật ở bước 5.
 
+### 2026-10-10 (đổi trình tự plan: cài HyPrefill sớm)
+- Làm gì: rà lại tiến độ so với plan: đã lệch sang nhánh kill test KT1/KT2 (mô hình) thay vì đi 01 → 02 → 03; đề xuất bỏ headline ở `docs/12` trái với `plan/02` §3 (G1 không quyết bằng mô hình) → rút lại. Quyết định cùng người dùng: cài HyPrefill sớm (bước 5), quyết G1a/G1b bằng số end-to-end; thêm M1 (bộ chạy thử bằng kernel thật) và chế độ HyPrefill bản tĩnh vào bước 5; simulator bước 3–4 thành công cụ hỗ trợ. Sửa PROPOSAL §5, `plan/02`, `plan/03`, `plan/04`, `plan/05`, `plan/07`.
+- Số liệu chính: không đo.
+- Bất ngờ: hai mô hình trên cùng số đầu vào cho kết luận ngược nhau (1.04 so với 1.31–1.36), nên không mô hình nào đủ để quyết.
+- Bị chặn: tiêu chí M1 (HyPrefill / Layered ≥ 1.15 ở ô có Layered R ≥ 100 token/iteration → đi tiếp; < 1.05 mọi ô → dừng nhánh) đang chờ duyệt, phải chốt trước khi chạy M1.
+- Tiếp: đọc mã vLLM 0.30 (scheduler, model runner, Qwen3-Next, state GDN), viết `docs/06_DESIGN.md`, rồi M1.
+
 ---
 
 ## Ý tưởng để dành (không code trong lúc chạy kế hoạch)

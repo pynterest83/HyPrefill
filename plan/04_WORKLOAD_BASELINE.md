@@ -3,6 +3,8 @@
 **Mục tiêu:** Chạy ba workload qua năm policy, quét tải và ba mức SLO, xác định vùng thắng.
 **Cổng:** **G2 — HyPrefill-oracle vượt SLOWeave ≥ 10% goodput (định nghĩa ở PROPOSAL §4.4; chốt 2026-09-29, trước khi có số) trên workload long-context và append-prefill.** Nếu không, thu hẹp claim hoặc xem lại thiết kế trước khi đầu tư vào prototype (bước 5–10).
 
+> **Sửa 10/10/2026 (PROPOSAL §5):** G2 trên simulator chỉ còn là tín hiệu; không chặn bước 5. Việc dựng workload (trace, SLO_TTFT) vẫn cần cho bước 8 và nên làm sớm.
+
 ---
 
 ## 1. Đầu ra bắt buộc

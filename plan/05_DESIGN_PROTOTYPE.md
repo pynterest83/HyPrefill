@@ -4,14 +4,19 @@
 
 ---
 
+> **Sửa 10/10/2026 (PROPOSAL §5, "Đổi trình tự"):** bước này làm ngay sau bước 2, không chờ simulator bước 3–4. Thêm M1 (bộ chạy thử bằng kernel thật) trước khi sửa vLLM, và cài **chế độ HyPrefill bản tĩnh** (chunk riêng cố định theo nhóm operator) cùng lúc với chế độ Layered, thay vì chờ bước 7. G1a, G1b quyết bằng số end-to-end (bước 8). Lý do: các cổng mô hình cho kết luận trái ngược (`docs/13`).
+
 ## 1. Đầu ra bắt buộc
+
+- [ ] **M1 — bộ chạy thử bằng kernel thật** (`bench/hyprefill_emulator.py`): stack 48 layer Qwen3-Next từ đúng kernel vLLM (FA3 paged, GDN FlashInfer có `initial_state`, fused MoE routing thật, shape TP2 mỗi GPU), ba lịch chunked / Layered / HyPrefill qua từng iteration với batch decode; đo R (token prefill mỗi iteration) dưới budget B, quyết theo tiêu chí M1 ở PROPOSAL §5 (chốt trước khi chạy)
 
 - [ ] `docs/06_DESIGN.md` — 2 trang, viết **trước khi code**
 - [ ] Fork vLLM tại tag v0.30.0 (`third_party/vllm`), build được từ source trong env `hyprefill`, chạy lại được §2.5 bước 1 với kết quả như bản wheel
 - [ ] **Chạy theo nhóm layer:** một request prefill có thể dừng sau nhóm layer g ở iteration i và chạy tiếp từ nhóm g + 1 ở iteration i + 1; activation giữa các nhóm và state GDN được giữ đúng
 - [ ] **Chế độ Layered** (k = 1, cùng chunk cho mọi operator, `N_lg` chỉnh được) chạy đúng trên Qwen3-30B-A3B và Qwen3-Next
 - [ ] **Kiểm chứng bản Layered của mình với code gốc của tác giả:** trên Qwen3-30B-A3B, cùng máy, cùng trace arXiv, tỉ lệ cải thiện goodput "layered so với chunked" trong vLLM của mình khớp tỉ lệ đó trong fork nanovllm gốc trong ±15% (tương đối). Chưa khớp thì chưa dùng làm baseline
-- [ ] Output token-level giống chunked prefill của vLLM trên 20 prompt greedy, cho cả chế độ Layered
+- [ ] **Chế độ HyPrefill bản tĩnh** (attention chunk c, GDN/MoE chunk k·c cố định, buffer activation giữa các iteration) chạy đúng trên Qwen3-Next
+- [ ] Output token-level giống chunked prefill của vLLM trên 20 prompt greedy, cho cả chế độ Layered và HyPrefill
 
 ## 2. Nội dung design doc
 

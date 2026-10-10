@@ -147,11 +147,11 @@ Câu hỏi độ bền vẫn giữ: trên Qwen3.8-Flash-Next, gain còn bao nhi�
 
 - **G1c trượt** (theo tinh thần tiêu chí): indexer có cấp phát tỉ lệ c·t nhưng vLLM 0.30 chặn ở ~1 GiB mỗi lần gọi và chỉ mất ≤ 6% thời gian; chế độ bộ nhớ ép attention dùng chunk nhỏ không có trong thực tế. Theo §3: G1b gần như chắc trượt, phải kiểm ở chế độ thời gian, và KT2 đã kiểm: HyPrefill / Layered ≤ 1.04 ở vùng P thực tế.
 - Cửa cuối của luận điểm gốc (attention bị giới hạn bởi bộ nhớ trên model sparse) đóng lại trên vLLM 0.30.
-- Quyết định hướng (bỏ headline HyPrefill / Layered, đi KT2-b) chờ duyệt; chưa sửa PROPOSAL.
+- ~~Quyết định hướng (bỏ headline HyPrefill / Layered, đi KT2-b)~~ **Rút lại 10/10/2026:** KT2 chỉ là cảnh báo sớm và công thức của nó lạc quan cho Layered (`docs/13`); theo §3 của file này, G1b không quyết bằng mô hình. Quyết bằng số đo thật (PROPOSAL §5, "Đổi trình tự").
 
 ### R5. Việc chuyển sang bước sau
 
-- Nếu đi KT2-b: bước 5 (hạ tầng chạy theo nhóm layer trong vLLM) thành trọng tâm; giữ chế độ k ≥ 2 như một tham số để đo HyPrefill / Layered end-to-end thật thay vì chỉ trên mô hình.
+- Sang bước 5 ngay (sửa 10/10/2026): M1 bộ chạy thử bằng kernel thật, rồi Layered (k = 1) và HyPrefill bản tĩnh (k ≥ 2) trong vLLM, đo end-to-end.
 - Tune `fused_moe` theo routing thật cho mọi policy trước khi so end-to-end.
 - Còn mở ở bước 2: thời gian kernel attention thưa QSA, Hình 2–3, trang gửi advisor.
 

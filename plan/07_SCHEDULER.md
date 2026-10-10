@@ -3,6 +3,8 @@
 **Mục tiêu:** Hoàn thành scheduler chọn chunk theo group với stagger, chạy đúng trong vLLM (cùng hạ tầng với chế độ Layered).
 **Cổng:** **G3 — overhead buffer + stagger ≤ 50% oracle gain.** Nếu vượt: dừng nhánh prototype, viết bài measurement + oracle + simulator, nộp SIGMETRICS.
 
+> **Sửa 10/10/2026:** chế độ HyPrefill bản tĩnh đã chuyển sang bước 5. Bước này làm phần thích nghi: chọn `c_g(t)` theo cost model khi context và tải thay đổi, stagger tối ưu.
+
 ---
 
 ## 1. Đầu ra bắt buộc
