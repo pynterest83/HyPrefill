@@ -9,7 +9,7 @@ Một request prefill được phép đi qua các layer ở những iteration kh
 - **Layered (k = 1):** cùng một chunk n cho mọi operator, nhưng chunk dừng sau một số layer và đi tiếp ở iteration sau.
 - **HyPrefill bản tĩnh (k ≥ 2):** attention nhận chunk c, GDN và MoE nhận chunk k·c; activation chờ giữa các iteration.
 
-Không đổi kernel nào (GDN vẫn `FLA_CHUNK_SIZE` = 64). Không làm trong prototype đầu: prefix cache, spec decode, cascade attention, KV connector, SP-MoE, nhiều request prefill cùng lúc ở các tầng khác nhau (một request prefill đang chạy dở mỗi lúc, phần còn lại xếp hàng).
+Không đổi kernel nào (GDN vẫn `FLA_CHUNK_SIZE` = 64). Không làm trong prototype đầu: spec decode, cascade attention, KV connector, SP-MoE, nhiều request prefill cùng lúc ở các tầng khác nhau (một request prefill đang chạy dở mỗi lúc, phần còn lại xếp hàng).
 
 ## 2. Đơn vị lập lịch: tầng (stage)
 
@@ -69,3 +69,27 @@ Cách làm: mỗi loại tầng là một module compile riêng, có graph piece
 ## 8. Thứ tự làm
 
 M1 (bộ chạy thử) → fork vLLM build từ source, chạy chunked bằng wheel → tách decoder layer thành mixer/MoE, module tầng compile được → scheduler + runner cho Layered (k = 1), kiểm đúng → HyPrefill bản tĩnh, kiểm đúng → graph theo tầng → đo end-to-end (bước 8).
+
+## 9. Prefix cache với model hybrid (bổ sung 10/10/2026, bắt buộc theo yêu cầu)
+
+Workload chính (trace coding agent cc-traces-weka) có 96% token input lấy được từ prefix cache, nên staged prefill phải chạy cùng prefix cache. Đọc mã vLLM v0.30 (`third_party/vllm`, trùng byte với bản wheel):
+
+**vLLM hiện làm gì.**
+- Prefix cache với model hybrid ép `mamba_cache_mode = 'align'` (`model_executor/models/config.py:622–656`).
+- Chế độ 'all' không dùng được với Qwen3-Next (`qwen3_next.py:830`) và tốn bộ nhớ lớn (khoảng 19.8 MB mỗi mốc 544 token mỗi GPU, gấp 3 lần KV attention).
+- Block size B = 544 (state conv + ssm bf16 của 12 layer GDN một nhóm, đệm theo trang attention; `platforms/interface.py:906`).
+- KV cache chia 4 nhóm: 1 nhóm attention 12 layer, 3 nhóm GDN 12 layer xen kẽ theo độ sâu (`kv_cache_utils.py:1541–1573`).
+- Mỗi block GDN được hash giữ state sau đúng (p + 1)·B token cho mọi layer của nhóm; cache hit cần đủ mọi nhóm (`block_pool.py:204`).
+- Block được **commit lúc lập lịch, trước khi tính** (`kv_cache_manager.py:590–599`).
+- Mỗi request chỉ có khoảng 2 slot state thật mỗi nhóm GDN; chunk bị cắt theo mốc B (`scheduler.py:413–525`); `preprocess_mamba` copy state cho mọi layer cùng lúc (`worker/mamba_utils.py:1433–1537`).
+
+**Bất biến bị phá khi chạy so le, và cách giữ:**
+1. **Commit theo từng nhóm, ở mốc nhỏ nhất mà mọi layer của nhóm đã qua.** Dùng `allocate_slots(delay_cache_blocks=True)` (đường mà P/D đang dùng) rồi commit trong `update_from_output`. Với GDN, chỉ commit mốc mà mọi layer đều kết thúc chunk đúng ở đó. An toàn vì cache hit đòi đủ mọi nhóm.
+2. **Slot state theo từng layer.** Một hàng block table 'align' đánh chỉ số theo vị trí và có độ dài cdiv(max_len, B), nên nhiều slot thật cùng tồn tại được. Mỗi layer GDN đọc slot `(P_l − 1)//B` của chính nó, chỉ copy tensor của mình khi sang block mới. Cần: nới assert một-slot (`single_type_kv_cache_manager.py:1888`); chỉ giải phóng slot khi mốc nhỏ nhất của nhóm đã qua và đã quyết commit; `mamba_state_idx` và metadata GDN theo từng layer hoặc từng tầng.
+3. **Chunk theo bội của B:** attention c = m·544, GDN/MoE k·c, neo ở vị trí cache hit (luôn là bội của 544). Các điểm dừng bắt buộc (`last_cache_position`, junction, phần đuôi) phải là ranh giới chunk GDN, nếu không mốc được giữ cho lượt append sau không được tạo và cache hit lùi tới k·c token.
+4. **Nhóm KV theo độ sâu liên tiếp** thay vì xen kẽ (`kv_cache_utils.py:1572`, phần xen kẽ chỉ để phục vụ PP), để mỗi nhóm GDN khớp một tầng.
+5. **Preempt, abort, kết thúc:** đặt lại mọi mốc, chặn việc giải phóng block cho tới khi step đang chạy xong, bỏ slot chưa commit. Tắt partial-hit CoW và checkpoint của bản fork lúc đầu (`prefix_match_unit = B`).
+
+**Hệ quả cho thiết kế và cho M1.**
+- Chunk attention phải là bội của 544. Nhưng FA3 có bậc thang theo tile 128, và lcm(544, 128) = 2176. Chunk 544 hoặc 1088 có tile lẻ; cần đo giá này. M1 đã dùng n_A ∈ {512, 1024}, không phải bội của 544, nên lượt M1 kế tiếp phải dùng lưới chunk là bội của 544.
+- Chỉ các mốc GDN được cache. Với k lớn, mốc cache thưa hơn, nên lượt append sau có thể phải tính lại nhiều hơn, trừ khi ép điểm dừng như mục 3. Cần đo trên trace.
