@@ -8,7 +8,7 @@
 
 ## 1. Đầu ra bắt buộc
 
-- [ ] **M1 — bộ chạy thử bằng kernel thật** (`bench/hyprefill_emulator.py`): stack 48 layer Qwen3-Next từ đúng kernel vLLM (FA3 paged, GDN FlashInfer có `initial_state`, fused MoE routing thật, shape TP2 mỗi GPU), ba lịch chunked / Layered / HyPrefill qua từng iteration với batch decode; đo R (token prefill mỗi iteration) dưới budget B, quyết theo tiêu chí M1 ở PROPOSAL §5 (chốt trước khi chạy)
+- [x] *(10/10/2026: **ở giữa**, tối đa 1.21, `results/step05/README.md`)* **M1 — bộ chạy thử bằng kernel thật** (`bench/hyprefill_emulator.py`): stack 48 layer Qwen3-Next từ đúng kernel vLLM (FA3 paged, GDN FlashInfer có `initial_state`, fused MoE routing thật, shape TP2 mỗi GPU), ba lịch chunked / Layered / HyPrefill qua từng iteration với batch decode; đo R (token prefill mỗi iteration) dưới budget B, quyết theo tiêu chí M1 ở PROPOSAL §5 (chốt trước khi chạy)
 
 - [x] `docs/06_DESIGN.md` — 2 trang, viết **trước khi code** *(10/10/2026, chờ duyệt)*
 - [ ] Fork vLLM tại tag v0.30.0 (`third_party/vllm`), build được từ source trong env `hyprefill`, chạy lại được §2.5 bước 1 với kết quả như bản wheel

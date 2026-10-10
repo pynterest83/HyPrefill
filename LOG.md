@@ -86,6 +86,13 @@ Mẫu: **Làm gì** · **Số liệu chính** · **Bất ngờ** · **Bị chặ
 - Bị chặn: tiêu chí M1 (HyPrefill / Layered ≥ 1.15 ở ô có Layered R ≥ 100 token/iteration → đi tiếp; < 1.05 mọi ô → dừng nhánh) đang chờ duyệt, phải chốt trước khi chạy M1.
 - Tiếp: đọc mã vLLM 0.30 (scheduler, model runner, Qwen3-Next, state GDN), viết `docs/06_DESIGN.md`, rồi M1.
 
+### 2026-10-10 (chiều, M1)
+- Làm gì: viết `docs/06_DESIGN.md`; chốt tiêu chí M1 chặt hơn (≥ 1.30 ở 1 ô và ≥ 1.15 ở 3 ô, so với baseline tốt nhất từng ô) trước khi viết code; viết `bench/hyprefill_emulator.py` (stack 48 layer Qwen3-Next từ kernel vLLM, weight ngẫu nhiên, routing thật, chi phí lập lịch hiệu chỉnh từng sublayer trên chính stack, CUDA graph mỗi kiểu iteration) và `bench/m1_eval.py`; chạy lưới M1 trên GPU 4–7.
+- Số liệu chính: **M1 ở giữa**: tối đa 1.21 (B = 25 ms, D = 8, t = 256K, Δ = 8192), 2 ô ≥ 1.15, 6 ô ≥ 1.10, 0 ô ≥ 1.30; B = 100 ms ≤ 1.06. Mô phỏng từng iteration từng dự đoán 1.25–1.36 ở các ô này.
+- Bất ngờ: kết luận nhạy với biên budget: lượt đầu (an toàn 1.02) và lượt v2 (1.04) đều cho "≥ 1.30" ở ô 256K chỉ vì cấu hình tốt nhất của Layered vượt B 0.2–0.6% và bị loại; tune biên công bằng thì còn 1.15–1.21. Bảng cost bước 1/2 lệch từng loại sublayer nhiều hơn tổng (MoE +37…+120% so với KT1, attention −7…−15%) vì routing khác theo layer.
+- Bị chặn: không về kỹ thuật. Theo tiêu chí, đi tiếp M2 nhưng khó đạt A*; cần bàn với advisor/người dùng trước khi đầu tư vào bản cài vLLM.
+- Tiếp: quyết đi M2 hay không; nếu đi, nhắm vùng TBT chặt (25–50 ms), context ≥ 128K, append lớn (Δ ≥ 8192), nơi HyPrefill thắng 1.10–1.21.
+
 ---
 
 ## Ý tưởng để dành (không code trong lúc chạy kế hoạch)

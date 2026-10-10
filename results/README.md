@@ -39,6 +39,8 @@
 | `step02/2026-10-08_moe_config_cf/best_draw{0,1,2}/` | Chi phí `moe_mixed` theo cấu hình tốt nhất mỗi ô, dạng đầu vào `--kt1` |
 | `step02/oracle_*`, `step02/sim_*` | (sẽ có) oracle, mô phỏng |
 
+| `step05/` | M1 (bộ chạy thử bằng kernel thật): kết luận **ở giữa**, tối đa 1.21; danh mục ở `step05/README.md` |
+
 ## Dữ liệu cũ, không trộn với chuẩn mới (ở `~/hyprefill_data/` trên server)
 
 | Thư mục | Là gì | Dùng được cho |
