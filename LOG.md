@@ -92,6 +92,7 @@ Mẫu: **Làm gì** · **Số liệu chính** · **Bất ngờ** · **Bị chặ
 - Bất ngờ: kết luận nhạy với biên budget: lượt đầu (an toàn 1.02) và lượt v2 (1.04) đều cho "≥ 1.30" ở ô 256K chỉ vì cấu hình tốt nhất của Layered vượt B 0.2–0.6% và bị loại; tune biên công bằng thì còn 1.15–1.21. Bảng cost bước 1/2 lệch từng loại sublayer nhiều hơn tổng (MoE +37…+120% so với KT1, attention −7…−15%) vì routing khác theo layer.
 - Bị chặn: không về kỹ thuật. Theo tiêu chí, đi tiếp M2 nhưng khó đạt A*; cần bàn với advisor/người dùng trước khi đầu tư vào bản cài vLLM.
 - Tiếp: quyết đi M2 hay không; nếu đi, nhắm vùng TBT chặt (25–50 ms), context ≥ 128K, append lớn (Δ ≥ 8192), nơi HyPrefill thắng 1.10–1.21.
+- TTFT (`bench/m1_ttft.py`, từ lịch M1): khi append nối tiếp nhau, HyPrefill phục vụ nhanh hơn Layered 9–17% ở TBT 25–50 ms, t dài; nhưng với một append đơn lẻ, HyPrefill chậm hơn 1.1–2.7× (6.9 s so với 2.6 s ở B = 25 ms, t = 256K, Δ = 8192) vì các layer attention của cùng request không chồng lên nhau khi GDN/MoE chờ gom k·c. Cần chọn k theo tải (bước 7) và mô phỏng mức request để đo TTFT/goodput dưới tải.
 
 ---
 
