@@ -94,6 +94,13 @@ Mẫu: **Làm gì** · **Số liệu chính** · **Bất ngờ** · **Bị chặ
 - Tiếp: quyết đi M2 hay không; nếu đi, nhắm vùng TBT chặt (25–50 ms), context ≥ 128K, append lớn (Δ ≥ 8192), nơi HyPrefill thắng 1.10–1.21.
 - TTFT (`bench/m1_ttft.py`, từ lịch M1): khi append nối tiếp nhau, HyPrefill phục vụ nhanh hơn Layered 9–17% ở TBT 25–50 ms, t dài; nhưng với một append đơn lẻ, HyPrefill chậm hơn 1.1–2.7× (6.9 s so với 2.6 s ở B = 25 ms, t = 256K, Δ = 8192) vì các layer attention của cùng request không chồng lên nhau khi GDN/MoE chờ gom k·c. Cần chọn k theo tải (bước 7) và mô phỏng mức request để đo TTFT/goodput dưới tải.
 
+### 2026-10-10 (tối, định hướng từ người dùng)
+- Làm gì: chốt hướng sau M1. Workload chính là trace coding agent `semianalysisai/cc-traces-weka-062126-256k`; siết SLA (TBT 25–50 ms) là điều kiện thử hợp lệ. HyPrefill là giải pháp riêng: không quay về cấu hình Layered khi tải thấp, điểm yếu TTFT phải sửa bằng cơ chế của chính HyPrefill. Bắt buộc chạy được với prefix cache. Thử nhiều model; so đủ baseline (chunked đã tune, Layered, SLOWeave). Nếu sau các bước này HyPrefill vẫn chưa thắng: phân tích cụ thể lý do rồi đề xuất giải pháp mới, không chỉ "Layered + chunk theo operator".
+- Số liệu chính: không đo (M1 ở 512K/1M đang chạy).
+- Bất ngờ: không.
+- Bị chặn: prefix cache của hybrid (chế độ 'align') xung đột với chạy so le giữa các layer; đang đọc mã để tìm cách.
+- Tiếp: tải và phân tích trace; mô phỏng mức request trên trace; M1 ở 512K/1M; thiết kế prefix cache + staged prefill; mở rộng bộ chạy thử cho Kimi-Linear, Flash-Next; cài SLOWeave làm baseline.
+
 ---
 
 ## Ý tưởng để dành (không code trong lúc chạy kế hoạch)
