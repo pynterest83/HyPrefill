@@ -1,0 +1,119 @@
+{
+  "date": "2026-10-10T11:07:09",
+  "args": {
+    "model": "Qwen3-Next-80B-A3B-Instruct_tp2",
+    "config": "/home/hyprefill/work/HyPrefill/results/step00/configs/Qwen_Qwen3-Next-80B-A3B-Instruct.json",
+    "kt1": "results/step02/2026-10-08_s02_Qwen3-Next-80B-A3B-Instruct_tp2_gpu4_kt1_draw",
+    "routing": "/home/hyprefill/hyprefill_data/step02/moe_routing/2026-10-08_models--Qwen--Qwen3-Next-80B-A3B-Instruct_arxiv",
+    "host_from": "results/step01/2026-10-09_cpu_recheck_Qwen3-Next-80B-A3B-Instruct_tp2_gpu6/summary.csv",
+    "B": "25,50,100",
+    "D": "32",
+    "t": "524288",
+    "delta": "2048,8192",
+    "h0": 10.0,
+    "topk": 5,
+    "iters": 200,
+    "warm": 600,
+    "modes": "graph",
+    "safety": 1.06,
+    "long": 3000,
+    "clock_locked": true,
+    "mhz": 1980.0,
+    "tag": "m1long_s1.06_D32_t524288"
+  },
+  "host_dec": {
+    "A": 0.0421,
+    "G": 0.079605
+  },
+  "host_pre": {
+    "A": 0.031825000000000006,
+    "G": 0.27459
+  },
+  "shapes": {
+    "model_type": "qwen3_next",
+    "tp": 2,
+    "attn": {
+      "layers": 12,
+      "heads": 8,
+      "kv_heads": 1,
+      "head_dim": 256,
+      "kv_block": 544
+    },
+    "gdn": {
+      "layers": 36,
+      "k_heads": 8,
+      "v_heads": 16,
+      "d_k": 128,
+      "d_v": 128,
+      "conv_kernel": 4,
+      "ssm_dtype": "bfloat16"
+    },
+    "dense_attn": {
+      "layers": 12,
+      "heads": 8,
+      "kv_heads": 1,
+      "head_dim": 256,
+      "kv_block": 544,
+      "hidden": 2048,
+      "gated": true
+    },
+    "dense_gdn": {
+      "layers": 36,
+      "k_heads": 8,
+      "v_heads": 16,
+      "d_k": 128,
+      "d_v": 128,
+      "conv_kernel": 4,
+      "ssm_dtype": "bfloat16",
+      "hidden": 2048
+    },
+    "gdn_conv": {
+      "layers": 36,
+      "k_heads": 8,
+      "v_heads": 16,
+      "d_k": 128,
+      "d_v": 128,
+      "conv_kernel": 4,
+      "ssm_dtype": "bfloat16"
+    },
+    "moe": {
+      "layers": 48,
+      "hidden": 2048,
+      "experts": 512,
+      "topk": 10,
+      "inter": 256,
+      "shared_inter": 256,
+      "renormalize": 1
+    }
+  },
+  "gpu": [
+    {
+      "index": "6",
+      "name": "NVIDIA H200",
+      "memory.used": "631",
+      "memory.total": "143771",
+      "utilization.gpu": "0",
+      "clocks.sm": "1980",
+      "clocks.max.sm": "1980",
+      "temperature.gpu": "41"
+    }
+  ],
+  "cuda_visible_devices": "6",
+  "python": "3.12.15",
+  "torch": "2.13.0+cu130",
+  "cuda": "13.0",
+  "vllm": "0.30.0",
+  "flashinfer": "0.6.18.post1",
+  "repo_commit": "142fec916a26ee5c6dff890d2f15e75278a4dd85",
+  "repo_dirty": true,
+  "cmd": "bench/hyprefill_emulator.py --kt1 results/step02/2026-10-08_s02_Qwen3-Next-80B-A3B-Instruct_tp2_gpu4_kt1_draw --routing /home/hyprefill/hyprefill_data/step02/moe_routing/2026-10-08_models--Qwen--Qwen3-Next-80B-A3B-Instruct_arxiv --host-from results/step01/2026-10-09_cpu_recheck_Qwen3-Next-80B-A3B-Instruct_tp2_gpu6/summary.csv --B 25,50,100 --delta 2048,8192 --modes graph --clock-locked --D 32 --t 524288 --safety 1.06 --tag m1long_s1.06_D32_t524288",
+  "cgroup_cpu": {
+    "wall_s": 2255.0,
+    "quota_cores": 128.0,
+    "nr_periods": 22549,
+    "nr_throttled": 0,
+    "throttled_s": 0.0,
+    "cpu_s": 6938.4,
+    "mean_cores_used": 3.08
+  }
+}
