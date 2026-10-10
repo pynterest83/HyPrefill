@@ -10,7 +10,7 @@
 
 - [ ] **M1 — bộ chạy thử bằng kernel thật** (`bench/hyprefill_emulator.py`): stack 48 layer Qwen3-Next từ đúng kernel vLLM (FA3 paged, GDN FlashInfer có `initial_state`, fused MoE routing thật, shape TP2 mỗi GPU), ba lịch chunked / Layered / HyPrefill qua từng iteration với batch decode; đo R (token prefill mỗi iteration) dưới budget B, quyết theo tiêu chí M1 ở PROPOSAL §5 (chốt trước khi chạy)
 
-- [ ] `docs/06_DESIGN.md` — 2 trang, viết **trước khi code**
+- [x] `docs/06_DESIGN.md` — 2 trang, viết **trước khi code** *(10/10/2026, chờ duyệt)*
 - [ ] Fork vLLM tại tag v0.30.0 (`third_party/vllm`), build được từ source trong env `hyprefill`, chạy lại được §2.5 bước 1 với kết quả như bản wheel
 - [ ] **Chạy theo nhóm layer:** một request prefill có thể dừng sau nhóm layer g ở iteration i và chạy tiếp từ nhóm g + 1 ở iteration i + 1; activation giữa các nhóm và state GDN được giữ đúng
 - [ ] **Chế độ Layered** (k = 1, cùng chunk cho mọi operator, `N_lg` chỉnh được) chạy đúng trên Qwen3-30B-A3B và Qwen3-Next
